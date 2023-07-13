@@ -5,6 +5,8 @@ import configure
 import gspread
 from datetime import datetime
 
+from checkPayment import checkQIWI
+
 
 CREDENTIALS_FILE = 'storageSheet_keys.json'  # Имя файла с закрытым ключом, вы должны подставить свое
 
@@ -148,3 +150,64 @@ def getSoldItemsData():
     sheet = client.open("storageSheet").worksheet("soldItems")
 
     return sheet.get_all_values()
+
+
+# Создание заказа в USER ORDERS
+def addOrder(user, item, price, payment=None, status=1):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("userOrders")
+
+    sheet.append_row([user, item, price, '', status])
+
+
+# Получение информации о заказе из USER ORDERS
+def getOrderData(user, onlyPrice=False, onlyStatus=False, onlyItem=False):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("userOrders")
+    data = sheet.get_all_values()
+
+    if onlyPrice:  # Если запрошена только цена
+        for row in data:
+            if row[0] == str(user):
+                return row[2]
+    elif onlyItem:
+        for row in data:
+            if row[0] == str(user):
+                return row[1]
+    elif onlyStatus:
+        for row in data:
+            if row[0] == str(user):
+                return row[4]
+    else:
+        for row in data:
+            if row[0] == str(user):
+                return row
+
+
+def updateOrder(user, status, price=int(), payment=''):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("userOrders")
+    data = sheet.get_all_values()
+
+    match status:
+        case 2:
+            for row in range (1, len(data)):
+                if data[row][0] == str(user):
+                    sheet.update_acell(f'D{row + 1}', payment)
+                    sheet.update_acell(f'E{row + 1}', status)
+        case 3|4:
+            for row in range (1, len(data)):
+                if data[row][0] == str(user) and data[row][2] == str(price):
+                    sheet.update_acell(f'E{row + 1}', status)

@@ -5,7 +5,7 @@ import time
 
 
 # Создание браузера через UC
-def createBrowserUC(enableProxy):
+def createBrowserUC(enableProxy, logging=True):
 
     # Настройки Proxy для браузера
     if enableProxy:
@@ -21,7 +21,8 @@ def createBrowserUC(enableProxy):
     while t < 10:
         try:
             driver = uc.Chrome(options=options)
-            print(f"Successfully made UC browser with {t + 1} tries!\n")
+            if logging:
+                print(f"Successfully made UC browser with {t + 1} tries!\n")
             break
         except:
             t += 1
@@ -38,7 +39,7 @@ def createBrowserUC(enableProxy):
       '''
     })
 
-    driver.set_page_load_timeout(5)  # Время на загрузку страниц
-    driver.implicitly_wait(5)
+    driver.set_page_load_timeout(10)  # Время на загрузку страниц
+    driver.implicitly_wait(10)
 
     return driver

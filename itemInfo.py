@@ -9,13 +9,13 @@ def itemStatus(name):
     # Получение данных Storage
     storage = getStorageData()
     for i in range(1, len(storage)):
-        if (storage[i][0]).lower() == name:
+        if storage[i][0] == name:
             return True
 
     # Получение данных Sold Items
     soldItems = getSoldItemsData()
     for j in range(len(soldItems) - 10, len(soldItems)):
-        if (soldItems[j][2]).lower() == name:
+        if soldItems[j][2] == name:
             return False
 
     return None
@@ -24,7 +24,7 @@ def itemStatus(name):
 # Поиск ЦЕНЫ продажи предмета
 def itemWallPrice(name):
 
-    driver = createBrowserUC(enableProxy=False)
+    driver = createBrowserUC(enableProxy=False, logging=False)
     driver.get('https://vk.com/shoppycsgo')
     page = driver.page_source
     page = BeautifulSoup(page, 'lxml')
@@ -33,7 +33,7 @@ def itemWallPrice(name):
     wall = page.findAll('div', class_="wall_text")  # Все посты в группе
 
     for post in wall:  # Поиск по постам
-        if name in post.text.lower():
+        if name in post.text:
             text = post.text[post.text.find('Цена продажи: ') + 14:]
             price = text[:text.find(' ₽')]
             return price

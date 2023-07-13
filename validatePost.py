@@ -9,7 +9,7 @@ url = "https://vk.com/wall-219295292_19"
 
 def validatePost(post_url):
 
-    driver = createBrowserUC(enableProxy=False)
+    driver = createBrowserUC(enableProxy=False, logging=False)
     driver.get(url=post_url)
 
     page = driver.page_source
