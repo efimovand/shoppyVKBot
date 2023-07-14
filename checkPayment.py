@@ -7,25 +7,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import re
-
-
-# Определение номера месяца по его названию [checkSBER()]
-def get_month_number(month_name):
-    month_mapping = {
-        "января": "01",
-        "февраля": "02",
-        "марта": "03",
-        "апреля": "04",
-        "мая": "05",
-        "июня": "06",
-        "июля": "07",
-        "августа": "08",
-        "сентября": "09",
-        "октября": "10",
-        "ноября": "11",
-        "декабря": "12"
-    }
-    return month_mapping.get(month_name.lower())
+from binance.client import Client
+from supportFunctions import getMonthNumber
 
 
 # Проверка оплаты TINKOFF [В РАБОТЕ 🚧️]
@@ -49,7 +32,7 @@ def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
 # Проверка оплаты SBER [✅]
 def checkSber(user, price):
 
-    start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
+    start_time = datetime.now()  # Текущее время
 
     # Вход с СБЕРБАНК ОНЛАЙН
     driver = createBrowserUC(enableProxy=False)
@@ -98,7 +81,7 @@ def checkSber(user, price):
                 transaction_date = page.find('p', class_=class_pattern, attrs={"font-weight": "regular"}).text.split()  # ДАТА платежа
 
                 # ДЕНЬ и ВРЕМЯ платежа
-                transaction_day = transaction_date[0] + '.' + get_month_number(transaction_date[1]) + '.' + transaction_date[2]  # ДЕНЬ платежа
+                transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2]  # ДЕНЬ платежа
                 transaction_time = transaction_date[4]  # ВРЕМЯ платежа
 
                 if (start_time - datetime.strptime(transaction_day + ':' + transaction_time, '%d.%m.%Y:%H:%M')).seconds < 900:  # Если время подходит
@@ -131,32 +114,24 @@ def checkSber(user, price):
 # Проверка оплаты QIWI [✅]
 def checkQIWI(user, price):
 
-    start_time = str(datetime.now() - timedelta(hours=1))  # Переход в часовой пояс МСК
-    now_day = start_time[:start_time.find(' ')]  # Текущий день
-    now_time = start_time[start_time.find(' ') + 1:start_time.find('.')]  # Текущее время
+    start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
 
     wallet = python_qiwi.QiwiWаllet(configure.qiwi_phone, configure.qiwi_token)
 
     for i in range (1, 60 + 1):  # Проверка раз в 15 секунд на протяжении 15 минут
 
         print("QIWI attempt #", i, " for USER ", user, sep='')
-        history = wallet.payment_history()  # История платежей
+        history = wallet.payment_history(rows_num=10)  # История платежей
 
         for t in history['data']:
 
-            if t['statusText'] == 'Success':  # Если платеж прошел успешно
+            if t['status'] == 'SUCCESS' and t['type'] == 'IN':  # Если платеж прошел успешно
 
-                date = str(t['date'])
-                transaction_day = date[:date.find('T')]  # Дата платежа
-                transaction_time = date[date.find('T') + 1:date.find('+')]  # Время платежа
+                if t['sum']['amount'] == price and t['sum']['currency'] == 643:  # Если СУММА и ВАЛЮТА платежа подходят
 
-                # print(transaction_day, now_day)
-                # print(transaction_time, now_time, (datetime.strptime(now_time, '%H:%M:%S') - datetime.strptime(transaction_time, '%H:%M:%S')).seconds)
-                # print(price, t['sum']['amount'])
-                # print(643, t['sum']['currency'], '\n')
+                    transaction_time = datetime.strptime(t['date'][:t['date'].find('+')].replace('T', ' '), '%Y-%m-%d %H:%M:%S')  # Время платежа
 
-                if transaction_day == now_day and (datetime.strptime(now_time, '%H:%M:%S') - datetime.strptime(transaction_time, '%H:%M:%S')).seconds < 900:  # Если ДЕНЬ и ВРЕМЯ платежа подходят
-                    if str(t['sum']['amount']) == price and t['sum']['currency'] == 643:  # Если СУММА и ВАЛЮТА платежа подходят
+                    if (start_time - transaction_time).seconds < 900:  # Если ВРЕМЯ платежа подходит
                         return user, True
 
         time.sleep(15)
@@ -164,7 +139,22 @@ def checkQIWI(user, price):
 
 # Проверка оплаты USDT [НЕ НАЧАЛ]
 def checkUSDT(user, price):
-    pass
+
+    start_time = datetime.now()  # Текущее время
+
+    client = Client(configure.binance_token, configure.binance_secret)
+
+    for i in range (1, 60 + 1):
+
+        print("USDT attempt #", i, " for USER ", user, sep='')
+        history = client.get_deposit_history()  # Получение последних транзакций
+
+        for transaction in history:
+            if str(transaction['amount']) == str(price) and transaction['coin'] == 'USDT' and transaction['confirmTimes'] == '1/1':  # Если СУММА, СТАТУС и ВАЛЮТА платежа подходят
+                if (start_time - datetime.fromtimestamp(transaction['insertTime'] / 1000)).seconds < 900:  # Если ВРЕМЯ платежа подходит
+                    return user, True
+
+        time.sleep(15)
 
 
-checkSber('', 15000)
+checkUSDT(12345, 63.08)

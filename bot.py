@@ -7,6 +7,7 @@ from itemInfo import itemStatus, itemWallPrice
 from googleSheets import addOrder, getOrderData, updateOrder
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
+from supportFunctions import actualUSD
 
 
 vk_session = vk_api.VkApi(token=configure.group_token)
@@ -103,12 +104,11 @@ def main():
                         unablePaymentWay(user)
 
                     case 'СБЕР':
-                        # send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.sber_pay}')
-                        # if checkSber(user, price) == (user, True):
-                        #     transactionSuccess(user, price)
-                        # else:
-                        #     send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
-                        unablePaymentWay(user)
+                        send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.sber_pay}')
+                        if checkSber(user, price) == (user, True):
+                            transactionSuccess(user, price)
+                        else:
+                            send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
 
                     case 'QIWI':
                         send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.qiwi_pay}')
@@ -118,12 +118,13 @@ def main():
                             send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
 
                     case 'USDT':
-                        # send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.usdt_pay}')
-                        # if checkUSDT(user, price) == (user, True):
-                        #     transactionSuccess(user, price)
-                        # else:
-                        #     send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
-                        unablePaymentWay(user)
+                        price_USDT = round(price / actualUSD(), 2)
+                        send_message(user, f'Оплатите {price_USDT} USDT по указанным реквизитам в течение 15 минут:\n{configure.usdt_pay}')
+                        if checkUSDT(user, price_USDT) == (user, True):
+                            transactionSuccess(user, price_USDT)
+                        else:
+                            send_message(f'Мы не получили от вас оплату {price_USDT} USDT на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
+                        # unablePaymentWay(user)
 
 
             # Ссылка на обмен [TEXT / URL]
@@ -177,7 +178,7 @@ def transactionSuccess(user, price):
 
 
 def unablePaymentWay(user):
-    send_message(user, 'Данный способ оплаты на данный момент не работает. Попробуйте QIWI')
+    send_message(user, 'Данный способ оплаты на данный момент не работает. Попробуйте QIWI или СБЕР.')
 
 
 if __name__ == '__main__':
