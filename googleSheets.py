@@ -161,7 +161,7 @@ def addOrder(user, item, price, payment=None, status=1):
 
     sheet = client.open("storageSheet").worksheet("userOrders")
 
-    sheet.append_row([user, item, price, '', status])
+    sheet.append_row([user, item, price, '', status, datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M')])
 
 
 # Получение информации о заказе из USER ORDERS
@@ -245,4 +245,4 @@ def isActiveOrder(user):
             payment = data[row][3]
             return [True, price, payment]
 
-    return False
+    return [False]

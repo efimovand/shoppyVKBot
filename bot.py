@@ -1,15 +1,13 @@
-import time
-
 import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardButton, VkKeyboardColor
 import configure
-from validatePost import validatePost
-from itemInfo import itemStatus, itemWallPrice
+from itemInfo import itemStatus, itemWallPrice, parsePost
 from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
 from supportFunctions import actualUSD
+import time
 
 
 vk_session = vk_api.VkApi(token=configure.group_token)
@@ -43,12 +41,12 @@ def main():
 
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
-                if True in activeOrderInfo:
+                if activeOrderInfo[0]:
                     send_message(user, f'У вас уже есть активный заказ. Завершите его, оплатив сумму {activeOrderInfo[1]} на {activeOrderInfo[2]}, или дождитесь истечения времени оплаты — 15 минут.')
 
                 else:  # Если активного заказа нет
 
-                    validationResult = validatePost(message)  # Проверка корректности ссылки и получение данных о предмете
+                    validationResult = parsePost(message)  # Проверка корректности ссылки и получение данных о предмете
 
                     if type(validationResult) == dict:
 
@@ -71,7 +69,7 @@ def main():
 
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
-                if True in activeOrderInfo:
+                if activeOrderInfo[0]:
                     send_message(user, f'У вас уже есть активный заказ. Завершите его, оплатив сумму {activeOrderInfo[1]} на {activeOrderInfo[2]}, или дождитесь истечения времени оплаты — 15 минут.')
 
                 else:  # Если активного заказа нет
@@ -103,7 +101,7 @@ def main():
                 if message == 'Да':
                     choosePaymentSystem(user)
                 else:
-                    send_message(user, 'Проверьте ссылку на пост и попробуйте отправить ее заново. Если ошибка сохраняется, напишите [https://vk.com/id222224804|Администратору] - он сам проведет оплату и отправит вам предмет.')
+                    send_message(user, 'Проверьте ссылку на пост и попробуйте отправить ее заново. Если ошибка сохраняется, напишите @id222224804 (Администратору) - он сам проведет оплату и отправит вам предмет.')
 
 
             # Способ оплаты

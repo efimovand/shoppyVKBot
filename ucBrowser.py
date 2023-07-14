@@ -45,7 +45,7 @@ def createBrowserUC(enableProxy, enableCookies=False, logging=True):
       '''
     })
 
-    driver.set_page_load_timeout(10)  # Время на загрузку страниц
-    driver.implicitly_wait(10)
+    driver.set_page_load_timeout(15)  # Время на загрузку страниц
+    driver.implicitly_wait(15)
 
     return driver
