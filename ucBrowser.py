@@ -5,16 +5,22 @@ import time
 
 
 # Создание браузера через UC
-def createBrowserUC(enableProxy, logging=True):
+def createBrowserUC(enableProxy, enableCookies=False, logging=True):
+
+    options = uc.ChromeOptions()
 
     # Настройки Proxy для браузера
     if enableProxy:
         proxy = (proxy_ip, proxy_port, proxy_user, proxy_password)  # Данные Proxy
         proxy_extension = ProxyExtension(*proxy)
-        options = uc.ChromeOptions()
         options.add_argument(f"--load-extension={proxy_extension.directory}")
-    else:
-        options = uc.ChromeOptions()
+
+    # Настройки Cookies для браузера
+    if enableCookies:
+        options.add_argument('--allow-profiles-outside-user-dir')
+        options.add_argument('--enable-profile-shortcut-manager')
+        options.add_argument(r'user-data-dir=./Users/andrey/Library/ApplicationSupport/Google/Chrome')
+        options.add_argument('--profile-directory=Profile 1')  # Chrome аккаунт
 
     # Создание браузера через UC
     t = 0  # Номер попытки

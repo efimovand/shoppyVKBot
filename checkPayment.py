@@ -11,19 +11,74 @@ from binance.client import Client
 from supportFunctions import getMonthNumber
 
 
-# Проверка оплаты TINKOFF [В РАБОТЕ 🚧️]
+# Проверка оплаты TINKOFF [✅]
 def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
 
-    driver = createBrowserUC(enableProxy=False)
+    start_time = datetime.now()  # Текущее время
+    formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
+
+    driver = createBrowserUC(enableProxy=False, enableCookies=True)
     driver.get("https://www.tinkoff.ru/events/feed/")  # Страница последних платежей Tinkoff
+    time.sleep(5)
 
-    # time.sleep(10)
+    for i in range (1, 30 + 1):
 
-    input('next?')
+        print("TINKOFF attempt #", i, " for USER ", user, sep='')
 
-    page = driver.page_source
-    page = BeautifulSoup(page, 'lxml')
-    print(page)
+        # Если запрошен PIN код
+        if len(driver.find_elements('xpath', '//p[@class="b-paragraph b-paragraph_description"]')) != 0:
+            pinCodeFields = driver.find_elements('xpath', '//input[@class="ui-field__native" and contains(@id, "pinCode")]')  # Поля ввода
+
+            # Ввод PIN кода
+            pinCodeFields[0].send_keys(configure.tinkoff_pin[0])
+            time.sleep(0.5)
+            pinCodeFields[1].send_keys(configure.tinkoff_pin[1])
+            time.sleep(0.5)
+            pinCodeFields[2].send_keys(configure.tinkoff_pin[2])
+            time.sleep(0.5)
+            pinCodeFields[3].send_keys(configure.tinkoff_pin[3])
+
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//div[contains(@class, "Tabs--module__tabItem")]')))  # Ожидание прогрузки страницы последних платежей
+        time.sleep(5)
+
+        # Поиск подходящих транзакций
+        suitable_transactions = driver.find_elements('xpath', '//span[contains(@class, "TimelineItem__value") and @style="color: rgb(34, 160, 83);"]')
+        if suitable_transactions:
+
+            for j in range (len(suitable_transactions)):
+
+                suitable_transactions = driver.find_elements('xpath', '//span[contains(@class, "TimelineItem__value") and @style="color: rgb(34, 160, 83);"]')
+
+                if suitable_transactions[j].text.replace('\n', '') == '+' + formatted_price + ',00':  # Если СУММА подходит
+
+                    suitable_transactions[j].click()
+                    time.sleep(3)
+
+                    transaction_date = driver.find_element('xpath', '//span[@data-qa-file="UITimelineOperationPopup"]').text.split()  # ДАТА платежа
+
+                    # ДЕНЬ и ВРЕМЯ платежа
+                    transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2][:-1]
+                    transaction_time = transaction_date[3]
+
+                    print(transaction_day, transaction_time)
+
+                    if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M%S')).seconds < 900:  # Если ВРЕМЯ подходит
+                        return user, True
+                    # # ---------- LOGGING ----------
+                    # else:
+                    #     print("OLD TRANSACTION")
+                    # # ---------- LOGGING ----------
+
+                    driver.find_element('xpath', '//button[@@data-qa-file="details-card-close"]').click()  # Возврат на страницу истории платежей
+                    time.sleep(5)
+
+        # # ---------- LOGGING ----------
+        # else:
+        #     print("NO SUITABLE TRANSACTIONS")
+        # # ---------- LOGGING ----------
+
+        time.sleep(30)  # Перерыв между попытками
+        driver.refresh()  # Обновление страницы последних платежей
 
     driver.close()
     driver.quit()
@@ -33,6 +88,7 @@ def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
 def checkSber(user, price):
 
     start_time = datetime.now()  # Текущее время
+    formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
 
     # Вход с СБЕРБАНК ОНЛАЙН
     driver = createBrowserUC(enableProxy=False)
@@ -51,16 +107,14 @@ def checkSber(user, price):
     if len(driver.find_elements('xpath', '//h2[@data-testid="stage-subheader"]')) != 0:  # Пропуск лишней страницы при входе
         driver.find_element('xpath', '//button[@data-testid="button-skip"]').click()
 
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
-    time.sleep(5)
-
-    # Последние платежи
-    formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
-
     for i in range (1, 30 + 1):
 
         print("SBER attempt #", i, " for USER ", user, sep='')
 
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
+        time.sleep(5)
+
+        # Поиск подходящих транзакций
         suitable_transactions = driver.find_elements('xpath', f'//*[contains(@class, "region-operations") and @color="green" and text()="+{str(formatted_price)} "]')  # Подходящие по СУММЕ транзакции
 
         if suitable_transactions:  # Если есть подходящие по СУММЕ транзакции
@@ -101,11 +155,7 @@ def checkSber(user, price):
         # # ---------- LOGGING ----------
 
         time.sleep(30)  # Перерыв между попытками
-
-        # Обновление страницы последних платежей
-        driver.refresh()
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
-        time.sleep(5)
+        driver.refresh()  # Обновление страницы последних платежей
 
     driver.close()
     driver.quit()
@@ -137,7 +187,7 @@ def checkQIWI(user, price):
         time.sleep(15)
 
 
-# Проверка оплаты USDT [НЕ НАЧАЛ]
+# Проверка оплаты USDT [✅]
 def checkUSDT(user, price):
 
     start_time = datetime.now()  # Текущее время
@@ -155,6 +205,3 @@ def checkUSDT(user, price):
                     return user, True
 
         time.sleep(15)
-
-
-checkUSDT(12345, 63.08)
