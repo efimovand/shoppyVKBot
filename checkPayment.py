@@ -2,16 +2,81 @@ import configure
 import python_qiwi
 from datetime import datetime, timedelta
 import time
+from ucBrowser import createBrowserUC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+import re
 
 
-def checkTinkoff(user, price):
-    pass
+# Проверка оплаты TINKOFF [В РАБОТЕ 🚧️]
+def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
+
+    driver = createBrowserUC(enableProxy=False)
+    driver.get("https://www.tinkoff.ru/events/feed/")  # Страница последних платежей Tinkoff
+
+    # time.sleep(10)
+
+    input('next?')
+
+    page = driver.page_source
+    page = BeautifulSoup(page, 'lxml')
+    print(page)
+
+    driver.close()
+    driver.quit()
 
 
+# Проверка оплаты SBER [В РАБОТЕ 🚧]
 def checkSber(user, price):
+
+    # Вход с СБЕРБАНК ОНЛАЙН
+    driver = createBrowserUC(enableProxy=False)
+    driver.get("https://online.sberbank.ru/")  # Страница входа в ЛК Сбербанк
+
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//button[@data-testid="button-continue"]')))  # Ожидание прогрузки страницы входа
+
+    driver.find_element('xpath', '//input[@name="login"]').send_keys(configure.sber_login)  # Заполнение ЛОГИНА
+    time.sleep(1)
+
+    driver.find_element('xpath', '//input[@name="password"]').send_keys(configure.sber_password)  # Заполнение ПАРОЛЯ
+    time.sleep(1)
+
+    driver.find_element('xpath', '//button[@data-testid="button-continue"]').click()  # Кнопка входа
+
+    # Пропуск лишней страницы при входе
     pass
 
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
+    time.sleep(5)
 
+    page = driver.page_source
+
+    driver.close()
+    driver.quit()
+
+    # # ---------- TESTING ----------
+    # file = open('testPage.txt', 'r')
+    # page = file.read()
+    # page = BeautifulSoup(page, 'lxml')
+    # file.close()
+    # # ---------- TESTING ----------
+
+    page = str(page)
+
+    # Отсечение лишней информацию из кода страницы
+    page = page[page.find('<div class="region-operations'):]
+    page = BeautifulSoup(page, 'lxml')
+
+    # Последние платежи
+    class_pattern = re.compile("region-operations")  # Регулярное выражение для поиска операций
+    history = page.find_all('p', class_=class_pattern, attrs={"color": "green"})  # История входящих платежей
+
+    for t in history:
+        print(t.text, '\n')
+
+
+# Проверка оплаты QIWI [✅]
 def checkQIWI(user, price):
 
     start_time = str(datetime.now() - timedelta(hours=1))  # Переход в часовой пояс МСК
@@ -45,5 +110,9 @@ def checkQIWI(user, price):
         time.sleep(15)
 
 
+# Проверка оплаты USDT [НЕ НАЧАЛ]
 def checkUSDT(user, price):
     pass
+
+
+checkSber('', '')
