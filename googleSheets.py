@@ -192,7 +192,8 @@ def getOrderData(user, onlyPrice=False, onlyStatus=False, onlyItem=False):
                 return row
 
 
-def updateOrder(user, status, price=int(), payment=''):
+# Обновить информацию о заказе из USER ORDERS
+def updateOrder(user, price, status, payment=''):
 
     scope = ['https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
@@ -204,10 +205,25 @@ def updateOrder(user, status, price=int(), payment=''):
     match status:
         case 2:
             for row in range (1, len(data)):
-                if data[row][0] == str(user):
+                if data[row][0] == str(user) and data[row][2] == str(price):
                     sheet.update_acell(f'D{row + 1}', payment)
                     sheet.update_acell(f'E{row + 1}', status)
         case 3|4:
             for row in range (1, len(data)):
                 if data[row][0] == str(user) and data[row][2] == str(price):
                     sheet.update_acell(f'E{row + 1}', status)
+
+
+# Удаление заказа из USER ORDERS
+def deleteOrder(user, price):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("userOrders")
+    data = sheet.get_all_values()
+
+    for row in range(1, len(data)):
+        if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '2':
+            sheet.delete_rows(row + 1, row + 1)

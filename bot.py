@@ -1,10 +1,12 @@
+import time
+
 import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardButton, VkKeyboardColor
 import configure
 from validatePost import validatePost
 from itemInfo import itemStatus, itemWallPrice
-from googleSheets import addOrder, getOrderData, updateOrder
+from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
 from supportFunctions import actualUSD
@@ -24,7 +26,7 @@ def send_message(user_id, message, keyboard=None):
 
 def main():
 
-    print("BOT is working...")
+    print("\nBOT is working...\n")
 
     for event in longpoll.listen():
 
@@ -81,50 +83,65 @@ def main():
                     send_message(user, 'Введите полное название предмета на английском языке.\nЕго можно скопировать из поста с предметом на стене группы.\nНапример, "𝙰𝚆𝙿 | 𝙰𝚜𝚒𝚒𝚖𝚘𝚟 (𝙵𝚒𝚎𝚕𝚍-𝚃𝚎𝚜𝚝𝚎𝚍)"')
 
 
-            # Подтверждение покупки предмета
+            # Подтверждение заказа
             elif message == 'Да' or message == 'Нет':
                 if message == 'Да':
                     choosePaymentSystem(user)
                 else:
-                    send_message(user, 'Проверьте ссылку на пост и попробуйте отправить ее заново. Если ошибка сохраняется, напишите [*https://vk.com/id222224804|Администратору] - он сам проведет оплату и отправит вам предмет.')
+                    send_message(user, 'Проверьте ссылку на пост и попробуйте отправить ее заново. Если ошибка сохраняется, напишите [https://vk.com/id222224804|Администратору] - он сам проведет оплату и отправит вам предмет.')
 
 
-            # Оплата
+            # Способ оплаты
             elif message == 'Тинькофф' or message == 'СБЕР' or message == 'QIWI' or message == 'USDT':
 
                 price = getOrderData(user, onlyPrice=True)  # Сумма заказа
 
                 match message:
+
                     case 'Тинькофф':
-                        # send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.tinkoff_pay}')
-                        # if checkTinkoff(user, price) == (user, True):
-                        #     transactionSuccess(user, price)
-                        # else:
-                        #     send_message(user, f'Мы не получили от вас оплату {price}₽ на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
-                        unablePaymentWay(user)
+
+                        send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.tinkoff_pay}')
+                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
+
+                        if checkTinkoff(user, price) == (user, True):
+                            transactionSuccess(user, price)
+                        else:
+                            send_message(user, f'Мы не получили от вас оплату {price}₽ на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
+                            deleteOrder(user, price)
 
                     case 'СБЕР':
+
                         send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.sber_pay}')
+                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
+
                         if checkSber(user, price) == (user, True):
                             transactionSuccess(user, price)
                         else:
                             send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
+                            deleteOrder(user, price)
 
                     case 'QIWI':
+
                         send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.qiwi_pay}')
+                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
+
                         if checkQIWI(user, price) == (user, True):
                             transactionSuccess(user, price)
                         else:
                             send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
+                            deleteOrder(user, price)
 
                     case 'USDT':
-                        price_USDT = round(price / actualUSD(), 2)
+
+                        price_USDT = round(price / actualUSD(), 2)  # Цена заказа в USDT
                         send_message(user, f'Оплатите {price_USDT} USDT по указанным реквизитам в течение 15 минут:\n{configure.usdt_pay}')
+                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
+
                         if checkUSDT(user, price_USDT) == (user, True):
                             transactionSuccess(user, price_USDT)
                         else:
                             send_message(f'Мы не получили от вас оплату {price_USDT} USDT на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
-                        # unablePaymentWay(user)
+                            deleteOrder(user, price)
 
 
             # Ссылка на обмен [TEXT / URL]
@@ -140,7 +157,7 @@ def main():
                     price = getOrderData(user, onlyPrice=True)
                     try:
                         # sendTradeOffer(item, message)  # Отправка предмета пользователю
-                        updateOrder(user, status=4, price=price)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
+                        updateOrder(user, price, status=4,)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                         pass  # Удаление заказа из активных
                         send_message(user, f'Ваш предмет {item} вам успешно отправлен! Примите его в течение 2 часов.')
                     except:
@@ -154,6 +171,7 @@ def main():
                 send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост https://vk.com/shoppycsgo, либо название предмета из поста.')
 
 
+# Подтверждение заказа
 def acceptItem(user, name, price):
     markup = VkKeyboard(one_time=True)
     markup.add_button('Да', VkKeyboardColor.POSITIVE)
@@ -162,6 +180,7 @@ def acceptItem(user, name, price):
     addOrder(user, name, price)
 
 
+# Выбор платежной системы
 def choosePaymentSystem(user):
     markup = VkKeyboard(one_time=True)
     markup.add_button('Тинькофф', VkKeyboardColor.PRIMARY)
@@ -172,13 +191,17 @@ def choosePaymentSystem(user):
     send_message(user, f'Выберите способ оплаты:', keyboard=markup)
 
 
+# Успешная оплата
 def transactionSuccess(user, price):
-    updateOrder(user, 3, price=price)
+    updateOrder(user, price, status=3)  # Обновление статуса заказа на 'ОПЛАЧЕНО'
     send_message(user, 'Оплата получена ✅\nОтправьте вашу ссылку на обмен')
 
 
+# Недоступный способ оплаты
 def unablePaymentWay(user):
-    send_message(user, 'Данный способ оплаты на данный момент не работает. Попробуйте QIWI или СБЕР.')
+    send_message(user, 'Данный способ оплаты на данный момент недоступен. Попробуйте один из других.')
+    time.sleep(3)
+    choosePaymentSystem(user)
 
 
 if __name__ == '__main__':

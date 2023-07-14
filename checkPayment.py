@@ -12,7 +12,9 @@ from supportFunctions import getMonthNumber
 
 
 # Проверка оплаты TINKOFF [✅]
-def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
+def checkTinkoff(user, price):
+
+    print('----- Starting TINKOFF scanning for USER', user, '-----')
 
     start_time = datetime.now()  # Текущее время
     formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
@@ -23,7 +25,7 @@ def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
 
     for i in range (1, 30 + 1):
 
-        print("TINKOFF attempt #", i, " for USER ", user, sep='')
+        print("    TINKOFF attempt #", i, " for USER ", user, sep='')
 
         # Если запрошен PIN код
         if len(driver.find_elements('xpath', '//p[@class="b-paragraph b-paragraph_description"]')) != 0:
@@ -60,9 +62,8 @@ def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
                     transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2][:-1]
                     transaction_time = transaction_date[3]
 
-                    print(transaction_day, transaction_time)
-
                     if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M%S')).seconds < 900:  # Если ВРЕМЯ подходит
+                        print('----- SUCCESSFUL payment from USER', user, 'with TINKOFF -----')
                         return user, True
                     # # ---------- LOGGING ----------
                     # else:
@@ -83,9 +84,13 @@ def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
     driver.close()
     driver.quit()
 
+    print('----- TINKOFF payment from USER', user, 'has not been received -----')
+
 
 # Проверка оплаты SBER [✅]
 def checkSber(user, price):
+
+    print('----- Starting SBER scanning for USER', user, '-----')
 
     start_time = datetime.now()  # Текущее время
     formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
@@ -109,7 +114,7 @@ def checkSber(user, price):
 
     for i in range (1, 30 + 1):
 
-        print("SBER attempt #", i, " for USER ", user, sep='')
+        print("    SBER attempt #", i, " for USER ", user, sep='')
 
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
         time.sleep(5)
@@ -139,6 +144,7 @@ def checkSber(user, price):
                 transaction_time = transaction_date[4]  # ВРЕМЯ платежа
 
                 if (start_time - datetime.strptime(transaction_day + ':' + transaction_time, '%d.%m.%Y:%H:%M')).seconds < 900:  # Если время подходит
+                    print('----- SUCCESSFUL payment from USER', user, 'with SBER -----')
                     return user, True
                 # # ---------- LOGGING ----------
                 # else:
@@ -160,17 +166,20 @@ def checkSber(user, price):
     driver.close()
     driver.quit()
 
+    print('----- SBER payment from USER', user, 'has not been received -----')
+
 
 # Проверка оплаты QIWI [✅]
 def checkQIWI(user, price):
 
-    start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
+    print('----- Starting QIWI scanning for USER', user, '-----')
 
+    start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
     wallet = python_qiwi.QiwiWаllet(configure.qiwi_phone, configure.qiwi_token)
 
     for i in range (1, 60 + 1):  # Проверка раз в 15 секунд на протяжении 15 минут
 
-        print("QIWI attempt #", i, " for USER ", user, sep='')
+        print("    QIWI attempt #", i, " for USER ", user, sep='')
         history = wallet.payment_history(rows_num=10)  # История платежей
 
         for t in history['data']:
@@ -182,26 +191,33 @@ def checkQIWI(user, price):
                     transaction_time = datetime.strptime(t['date'][:t['date'].find('+')].replace('T', ' '), '%Y-%m-%d %H:%M:%S')  # Время платежа
 
                     if (start_time - transaction_time).seconds < 900:  # Если ВРЕМЯ платежа подходит
+                        print('----- SUCCESSFUL payment from USER', user, 'with QIWI -----')
                         return user, True
 
         time.sleep(15)
+
+    print('----- QIWI payment from USER', user, 'has not been received -----')
 
 
 # Проверка оплаты USDT [✅]
 def checkUSDT(user, price):
 
-    start_time = datetime.now()  # Текущее время
+    print('----- Starting USDT scanning for USER', user, '-----')
 
+    start_time = datetime.now()  # Текущее время
     client = Client(configure.binance_token, configure.binance_secret)
 
     for i in range (1, 60 + 1):
 
-        print("USDT attempt #", i, " for USER ", user, sep='')
+        print("    USDT attempt #", i, " for USER ", user, sep='')
         history = client.get_deposit_history()  # Получение последних транзакций
 
         for transaction in history:
             if str(transaction['amount']) == str(price) and transaction['coin'] == 'USDT' and transaction['confirmTimes'] == '1/1':  # Если СУММА, СТАТУС и ВАЛЮТА платежа подходят
                 if (start_time - datetime.fromtimestamp(transaction['insertTime'] / 1000)).seconds < 900:  # Если ВРЕМЯ платежа подходит
+                    print('----- SUCCESSFUL payment from USER', user, 'with USDT -----')
                     return user, True
 
         time.sleep(15)
+
+    print('----- USDT payment from USER', user, 'has not been received -----')
