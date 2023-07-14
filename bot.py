@@ -6,7 +6,7 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardButton, VkKeyboardColor
 import configure
 from validatePost import validatePost
 from itemInfo import itemStatus, itemWallPrice
-from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder
+from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
 from supportFunctions import actualUSD
@@ -41,50 +41,65 @@ def main():
 
                 send_message(user, 'Секунду, проверяю пост... 🔎')
 
-                validationResult = validatePost(message)  # Проверка корректности ссылки и получение данных о предмете
+                # Проверка наличия активного заказа у пользователя
+                activeOrderInfo = isActiveOrder(user)
+                if True in activeOrderInfo:
+                    send_message(user, f'У вас уже есть активный заказ. Завершите его, оплатив сумму {activeOrderInfo[1]} на {activeOrderInfo[2]}, или дождитесь истечения времени оплаты — 15 минут.')
 
-                if type(validationResult) == dict:
+                else:  # Если активного заказа нет
 
-                    # Поиск предмета по таблицам
-                    itemActualStatus = itemStatus(validationResult['name'])
-                    match itemActualStatus:
-                        case True:
-                            acceptItem(user, validationResult['name'], validationResult['price'])  # Подтверждение покупки предмета
-                        case False:
-                            send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, ведь скоро новое поступление! 🚚')
-                        case _:
-                            send_message(user, 'К сожалению, данный предмет не найден. Попробуйте указать ссылку на пост с предметом или повторите попытку позже.')
+                    validationResult = validatePost(message)  # Проверка корректности ссылки и получение данных о предмете
 
-                else:  # Ссылка на неверный пост / ошибка проверки
-                    send_message(user, validationResult)
+                    if type(validationResult) == dict:
+
+                        # Поиск предмета по таблицам
+                        itemActualStatus = itemStatus(validationResult['name'])
+                        match itemActualStatus:
+                            case True:
+                                acceptItem(user, validationResult['name'], validationResult['price'])  # Подтверждение покупки предмета
+                            case False:
+                                send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, ведь скоро новое поступление! 🚚')
+                            case _:
+                                send_message(user, 'К сожалению, данный предмет не найден. Попробуйте указать ссылку на пост с предметом или повторите попытку позже.')
+
+                    else:  # Ссылка на неверный пост / ошибка проверки
+                        send_message(user, validationResult)
 
 
             # Если отправили НАЗВАНИЕ предмета
             elif (' | ' in message) or (' (' in message) or (')' in message):
 
-                if " | " in message and " (" in message and ")" in message:
+                # Проверка наличия активного заказа у пользователя
+                activeOrderInfo = isActiveOrder(user)
+                if True in activeOrderInfo:
+                    send_message(user, f'У вас уже есть активный заказ. Завершите его, оплатив сумму {activeOrderInfo[1]} на {activeOrderInfo[2]}, или дождитесь истечения времени оплаты — 15 минут.')
 
-                    send_message(user, 'Секунду, ищу предмет... 🔎')
+                else:  # Если активного заказа нет
 
-                    message = message.replace('"', '').replace('\n', '')  # Удаление случайных символов из сообщения
+                    if " | " in message and " (" in message and ")" in message:
 
-                    # Поиск предмета по таблицам
-                    itemActualStatus = itemStatus(message)
-                    match itemActualStatus:
-                        case True:
-                            item_price = itemWallPrice(message)  # Поиск цены предмета
-                            acceptItem(user, event.text, item_price)  # Подтверждение покупки предмета
-                        case False:
-                            send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, ведь скоро новое поступление! 🚚')
-                        case _:
-                            send_message(user, 'К сожалению, данный предмет не найден. Попробуйте указать ссылку на пост с предметом или повторите попытку позже.')
+                        send_message(user, 'Секунду, ищу предмет... 🔎')
 
-                else:
-                    send_message(user, 'Введите полное название предмета на английском языке.\nЕго можно скопировать из поста с предметом на стене группы.\nНапример, "𝙰𝚆𝙿 | 𝙰𝚜𝚒𝚒𝚖𝚘𝚟 (𝙵𝚒𝚎𝚕𝚍-𝚃𝚎𝚜𝚝𝚎𝚍)"')
+                        message = message.replace('"', '').replace('\n', '')  # Удаление случайных символов из сообщения
+
+                        # Поиск предмета по таблицам
+                        itemActualStatus = itemStatus(message)
+                        match itemActualStatus:
+                            case True:
+                                item_price = itemWallPrice(message)  # Поиск цены предмета
+                                acceptItem(user, event.text, item_price)  # Подтверждение покупки предмета
+                            case False:
+                                send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, ведь скоро новое поступление! 🚚')
+                            case _:
+                                send_message(user, 'К сожалению, данный предмет не найден. Попробуйте указать ссылку на пост с предметом или повторите попытку позже.')
+
+                    else:
+                        send_message(user, 'Введите полное название предмета на английском языке.\nЕго можно скопировать из поста с предметом на стене группы.\nНапример, "𝙰𝚆𝙿 | 𝙰𝚜𝚒𝚒𝚖𝚘𝚟 (𝙵𝚒𝚎𝚕𝚍-𝚃𝚎𝚜𝚝𝚎𝚍)"')
 
 
             # Подтверждение заказа
             elif message == 'Да' or message == 'Нет':
+
                 if message == 'Да':
                     choosePaymentSystem(user)
                 else:
@@ -106,8 +121,7 @@ def main():
                         if checkTinkoff(user, price) == (user, True):
                             transactionSuccess(user, price)
                         else:
-                            send_message(user, f'Мы не получили от вас оплату {price}₽ на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
-                            deleteOrder(user, price)
+                            transactionError(user, price, message)
 
                     case 'СБЕР':
 
@@ -117,8 +131,7 @@ def main():
                         if checkSber(user, price) == (user, True):
                             transactionSuccess(user, price)
                         else:
-                            send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
-                            deleteOrder(user, price)
+                            transactionError(user, price, message)
 
                     case 'QIWI':
 
@@ -128,8 +141,7 @@ def main():
                         if checkQIWI(user, price) == (user, True):
                             transactionSuccess(user, price)
                         else:
-                            send_message(f'Мы не получили от вас оплату {price} на {message}₽ в течение. Если произошла ошибка, напишите нам в ЛС')
-                            deleteOrder(user, price)
+                            transactionError(user, price, message)
 
                     case 'USDT':
 
@@ -140,8 +152,7 @@ def main():
                         if checkUSDT(user, price_USDT) == (user, True):
                             transactionSuccess(user, price_USDT)
                         else:
-                            send_message(f'Мы не получили от вас оплату {price_USDT} USDT на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
-                            deleteOrder(user, price)
+                            transactionError(user, price, message, USDT=True)
 
 
             # Ссылка на обмен [TEXT / URL]
@@ -195,6 +206,13 @@ def choosePaymentSystem(user):
 def transactionSuccess(user, price):
     updateOrder(user, price, status=3)  # Обновление статуса заказа на 'ОПЛАЧЕНО'
     send_message(user, 'Оплата получена ✅\nОтправьте вашу ссылку на обмен')
+
+
+# Неуспешная оплата
+def transactionError(user, price, message, USDT=False):
+    currency = ' USDT' if USDT else '₽'
+    send_message(f'Мы не получили от вас оплату {price}{currency} на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
+    deleteOrder(user, price)
 
 
 # Недоступный способ оплаты

@@ -227,3 +227,22 @@ def deleteOrder(user, price):
     for row in range(1, len(data)):
         if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '2':
             sheet.delete_rows(row + 1, row + 1)
+
+
+# Проверка наличия активного заказа у пользователя
+def isActiveOrder(user):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("userOrders")
+    data = sheet.get_all_values()
+
+    for row in range(1, len(data)):
+        if data[row][0] == str(user) and data[row][4] != '4':
+            price = data[row][2]
+            payment = data[row][3]
+            return [True, price, payment]
+
+    return False
