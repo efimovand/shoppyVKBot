@@ -9,6 +9,25 @@ from bs4 import BeautifulSoup
 import re
 
 
+# Определение номера месяца по его названию [checkSBER()]
+def get_month_number(month_name):
+    month_mapping = {
+        "января": "01",
+        "февраля": "02",
+        "марта": "03",
+        "апреля": "04",
+        "мая": "05",
+        "июня": "06",
+        "июля": "07",
+        "августа": "08",
+        "сентября": "09",
+        "октября": "10",
+        "ноября": "11",
+        "декабря": "12"
+    }
+    return month_mapping.get(month_name.lower())
+
+
 # Проверка оплаты TINKOFF [В РАБОТЕ 🚧️]
 def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
 
@@ -30,6 +49,8 @@ def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
 # Проверка оплаты SBER [В РАБОТЕ 🚧]
 def checkSber(user, price):
 
+    start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
+
     # Вход с СБЕРБАНК ОНЛАЙН
     driver = createBrowserUC(enableProxy=False)
     driver.get("https://online.sberbank.ru/")  # Страница входа в ЛК Сбербанк
@@ -44,25 +65,20 @@ def checkSber(user, price):
 
     driver.find_element('xpath', '//button[@data-testid="button-continue"]').click()  # Кнопка входа
 
-    # Пропуск лишней страницы при входе
-    pass
+    if len(driver.find_elements('xpath', '//h2[@data-testid="stage-subheader"]')) != 0:  # Пропуск лишней страницы при входе
+        driver.find_element('xpath', '//button[@data-testid="button-skip"]').click()
 
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
     time.sleep(5)
 
-    page = driver.page_source
-
-    driver.close()
-    driver.quit()
+    page = str(driver.page_source)
 
     # # ---------- TESTING ----------
     # file = open('testPage.txt', 'r')
     # page = file.read()
-    # page = BeautifulSoup(page, 'lxml')
+    # page = str(BeautifulSoup(page, 'lxml'))
     # file.close()
     # # ---------- TESTING ----------
-
-    page = str(page)
 
     # Отсечение лишней информацию из кода страницы
     page = page[page.find('<div class="region-operations'):]
@@ -73,7 +89,36 @@ def checkSber(user, price):
     history = page.find_all('p', class_=class_pattern, attrs={"color": "green"})  # История входящих платежей
 
     for t in history:
-        print(t.text, '\n')
+
+        transaction_price = t.text[t.text.find('+') + 1:t.text.find(' RUB')].replace(' ', '')  # Сумма платежа
+
+        if transaction_price == str(price):  # Если СУММА платежа подходит
+
+            # Определение даты платежа
+            driver.find_element('xpath', f'//*[contains(@class, "region-operations") and @color="green" and text()="{t.text.replace("RUB₽", "")}"]').click()  # Переход на страницу подробностей платежа
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//h3[text()="Подробности"]')))
+            time.sleep(3)
+
+            page = str(driver.page_source)
+            page = page[page.find('Дата и время'):]
+            page = BeautifulSoup(page, 'lxml')
+
+            class_pattern = re.compile("operations-details")
+            transaction_date = page.find('p', class_=class_pattern, attrs={"font-weight": "regular"}).text.split()  # ДАТА платежа
+
+            # ДЕНЬ и ВРЕМЯ платежа
+            transaction_day = transaction_date[0] + '.' + get_month_number(transaction_date[1]) + '.' + transaction_date[2]  # ДЕНЬ платежа
+            transaction_time = transaction_date[4]  # ВРЕМЯ платежа
+
+            if (start_time - datetime.strptime(transaction_day + ':' + transaction_time, '%d.%m.%Y:%H:%M')).seconds < 900:  # Если время подходит
+                return user, True
+
+            driver.back()  # Возврат на страницу истории платежей
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
+            time.sleep(5)
+
+    driver.close()
+    driver.quit()
 
 
 # Проверка оплаты QIWI [✅]
@@ -115,4 +160,4 @@ def checkUSDT(user, price):
     pass
 
 
-checkSber('', '')
+checkSber('', 15000)
