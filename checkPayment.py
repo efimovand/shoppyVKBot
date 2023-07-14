@@ -46,7 +46,7 @@ def checkTinkoff(user, price):  # В РАЗРАБОТКЕ
     driver.quit()
 
 
-# Проверка оплаты SBER [В РАБОТЕ 🚧]
+# Проверка оплаты SBER [✅]
 def checkSber(user, price):
 
     start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
@@ -71,51 +71,58 @@ def checkSber(user, price):
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
     time.sleep(5)
 
-    page = str(driver.page_source)
-
-    # # ---------- TESTING ----------
-    # file = open('testPage.txt', 'r')
-    # page = file.read()
-    # page = str(BeautifulSoup(page, 'lxml'))
-    # file.close()
-    # # ---------- TESTING ----------
-
-    # Отсечение лишней информацию из кода страницы
-    page = page[page.find('<div class="region-operations'):]
-    page = BeautifulSoup(page, 'lxml')
-
     # Последние платежи
-    class_pattern = re.compile("region-operations")  # Регулярное выражение для поиска операций
-    history = page.find_all('p', class_=class_pattern, attrs={"color": "green"})  # История входящих платежей
+    formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
 
-    for t in history:
+    for i in range (1, 30 + 1):
 
-        transaction_price = t.text[t.text.find('+') + 1:t.text.find(' RUB')].replace(' ', '')  # Сумма платежа
+        print("SBER attempt #", i, " for USER ", user, sep='')
 
-        if transaction_price == str(price):  # Если СУММА платежа подходит
+        suitable_transactions = driver.find_elements('xpath', f'//*[contains(@class, "region-operations") and @color="green" and text()="+{str(formatted_price)} "]')  # Подходящие по СУММЕ транзакции
 
-            # Определение даты платежа
-            driver.find_element('xpath', f'//*[contains(@class, "region-operations") and @color="green" and text()="{t.text.replace("RUB₽", "")}"]').click()  # Переход на страницу подробностей платежа
-            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//h3[text()="Подробности"]')))
-            time.sleep(3)
+        if suitable_transactions:  # Если есть подходящие по СУММЕ транзакции
 
-            page = str(driver.page_source)
-            page = page[page.find('Дата и время'):]
-            page = BeautifulSoup(page, 'lxml')
+            for j in range (len(suitable_transactions)):  # Проход по подходящим транзакциям
 
-            class_pattern = re.compile("operations-details")
-            transaction_date = page.find('p', class_=class_pattern, attrs={"font-weight": "regular"}).text.split()  # ДАТА платежа
+                suitable_transactions = driver.find_elements('xpath', f'//*[contains(@class, "region-operations") and @color="green" and text()="+{str(formatted_price)} "]')
 
-            # ДЕНЬ и ВРЕМЯ платежа
-            transaction_day = transaction_date[0] + '.' + get_month_number(transaction_date[1]) + '.' + transaction_date[2]  # ДЕНЬ платежа
-            transaction_time = transaction_date[4]  # ВРЕМЯ платежа
+                suitable_transactions[j].click()
+                WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//h3[text()="Подробности"]')))
+                time.sleep(3)
 
-            if (start_time - datetime.strptime(transaction_day + ':' + transaction_time, '%d.%m.%Y:%H:%M')).seconds < 900:  # Если время подходит
-                return user, True
+                page = str(driver.page_source)
+                page = page[page.find('Дата и время'):]
+                page = BeautifulSoup(page, 'lxml')
 
-            driver.back()  # Возврат на страницу истории платежей
-            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
-            time.sleep(5)
+                class_pattern = re.compile("operations-details")
+                transaction_date = page.find('p', class_=class_pattern, attrs={"font-weight": "regular"}).text.split()  # ДАТА платежа
+
+                # ДЕНЬ и ВРЕМЯ платежа
+                transaction_day = transaction_date[0] + '.' + get_month_number(transaction_date[1]) + '.' + transaction_date[2]  # ДЕНЬ платежа
+                transaction_time = transaction_date[4]  # ВРЕМЯ платежа
+
+                if (start_time - datetime.strptime(transaction_day + ':' + transaction_time, '%d.%m.%Y:%H:%M')).seconds < 900:  # Если время подходит
+                    return user, True
+                # # ---------- LOGGING ----------
+                # else:
+                #     print("OLD TRANSACTION")
+                # # ---------- LOGGING ----------
+
+                driver.back()  # Возврат на страницу истории платежей
+                WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
+                time.sleep(5)
+
+        # # ---------- LOGGING ----------
+        # else:
+        #     print("NO SUITABLE TRANSACTIONS")
+        # # ---------- LOGGING ----------
+
+        time.sleep(30)  # Перерыв между попытками
+
+        # Обновление страницы последних платежей
+        driver.refresh()
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
+        time.sleep(5)
 
     driver.close()
     driver.quit()
@@ -132,7 +139,7 @@ def checkQIWI(user, price):
 
     for i in range (1, 60 + 1):  # Проверка раз в 15 секунд на протяжении 15 минут
 
-        print("QIWI ATTEMPT #", i, " for USER ", user, sep='')
+        print("QIWI attempt #", i, " for USER ", user, sep='')
         history = wallet.payment_history()  # История платежей
 
         for t in history['data']:
