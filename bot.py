@@ -39,7 +39,7 @@ def main():
 
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
 
-            message = event.text  # Текст сообщения
+            message = event.text.replace('&quot;', '')  # Текст сообщения
             user = event.user_id  # ID пользователя
 
 
@@ -91,17 +91,18 @@ def main():
                         send_message(user, 'Секунду, ищу предмет... 🔎')
 
                         message = message.replace('"', '').replace('\n', '')  # Удаление случайных символов из сообщения
+                        print(message)
 
                         # Поиск предмета по таблицам
                         itemActualStatus = itemStatus(message)
                         match itemActualStatus:
                             case True:
                                 item_price = itemWallPrice(message)  # Поиск цены предмета
-                                acceptItem(user, event.text, item_price)  # Подтверждение покупки предмета
+                                acceptItem(user, event.text.replace('&quot;', ''), item_price)  # Подтверждение покупки предмета
                             case True, str():
                                 send_message(user, f'Обратите внимание, что предмет будет доступен для обмена {itemActualStatus[1]} в 12:00 МСК.\nЕсли вы оплатите его сейчас, мы забронируем предмет и отправим его вам в указанную дату.')
                                 item_price = itemWallPrice(message)  # Поиск цены предмета
-                                acceptItem(user, event.text, item_price)  # Подтверждение покупки предмета
+                                acceptItem(user, event.text.replace('&quot;', ''), item_price)  # Подтверждение покупки предмета
                             case False:
                                 send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, ведь скоро новое поступление! 🚚')
                             case None:
