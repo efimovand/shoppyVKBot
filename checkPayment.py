@@ -175,18 +175,19 @@ def checkQIWI(user, price):
     print('----- Starting QIWI scanning for USER', user, '-----')
 
     start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
-    wallet = python_qiwi.QiwiWаllet(configure.qiwi_phone, configure.qiwi_token)
 
     for i in range (1, 60 + 1):  # Проверка раз в 15 секунд на протяжении 15 минут
 
         print("    QIWI attempt #", i, " for USER ", user, sep='')
+
+        wallet = python_qiwi.QiwiWаllet(configure.qiwi_phone, configure.qiwi_token)
         history = wallet.payment_history(rows_num=10)  # История платежей
 
         for t in history['data']:
 
             if t['status'] == 'SUCCESS' and t['type'] == 'IN':  # Если платеж прошел успешно
 
-                if t['sum']['amount'] == price and t['sum']['currency'] == 643:  # Если СУММА и ВАЛЮТА платежа подходят
+                if t['sum']['amount'] == str(price) and t['sum']['currency'] == 643:  # Если СУММА и ВАЛЮТА платежа подходят
 
                     transaction_time = datetime.strptime(t['date'][:t['date'].find('+')].replace('T', ' '), '%Y-%m-%d %H:%M:%S')  # Время платежа
 

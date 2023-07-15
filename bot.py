@@ -3,7 +3,7 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardButton, VkKeyboardColor
 import configure
 from itemInfo import itemStatus, itemWallPrice, parsePost
-from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder
+from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder, delWithdrawnItem, addSoldItem
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
 from supportFunctions import actualUSD
@@ -20,6 +20,15 @@ def send_message(user_id, message, keyboard=None):
         vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0})
     else:
         vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0, 'keyboard': keyboard.get_keyboard()})
+
+
+# Функция получения предыдущего сообщения в диалоге
+def get_last_message(user_id, onlyText=False):
+    last_messages = vk_session.method('messages.getHistory', {'offset': 1, 'count': 1, 'user_id': user_id, 'peer_id': user_id, 'rev': 0, 'group_id': 219295292})
+    if onlyText:
+        return last_messages['items'][0]['text']
+    else:
+        return last_messages['items'][0]
 
 
 def main():
@@ -99,7 +108,15 @@ def main():
             elif message == 'Да' or message == 'Нет':
 
                 if message == 'Да':
-                    choosePaymentSystem(user)
+
+                    # Получение информации о предмете
+                    last_message_text = get_last_message(user)['text']
+                    item = last_message_text[last_message_text.find('\n') + 1:last_message_text.rfind('\n')]
+                    price = last_message_text[last_message_text.rfind('Цена: ') + 6:last_message_text.rfind(' ₽')]
+
+                    addOrder(user, item, price)  # Создание заказа в БД
+                    choosePaymentSystem(user)  # Выбор платежной системы
+
                 else:
                     send_message(user, 'Проверьте ссылку на пост и попробуйте отправить ее заново. Если ошибка сохраняется, напишите @id222224804 (Администратору) - он сам проведет оплату и отправит вам предмет.')
 
@@ -108,13 +125,13 @@ def main():
             elif message == 'Тинькофф' or message == 'СБЕР' or message == 'QIWI' or message == 'USDT':
 
                 price = getOrderData(user, onlyPrice=True)  # Сумма заказа
+                updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
 
                 match message:
 
                     case 'Тинькофф':
 
                         send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.tinkoff_pay}')
-                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
 
                         if checkTinkoff(user, price) == (user, True):
                             transactionSuccess(user, price)
@@ -124,7 +141,6 @@ def main():
                     case 'СБЕР':
 
                         send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.sber_pay}')
-                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
 
                         if checkSber(user, price) == (user, True):
                             transactionSuccess(user, price)
@@ -134,7 +150,6 @@ def main():
                     case 'QIWI':
 
                         send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n{configure.qiwi_pay}')
-                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
 
                         if checkQIWI(user, price) == (user, True):
                             transactionSuccess(user, price)
@@ -145,7 +160,6 @@ def main():
 
                         price_USDT = round(price / actualUSD(), 2)  # Цена заказа в USDT
                         send_message(user, f'Оплатите {price_USDT} USDT по указанным реквизитам в течение 15 минут:\n{configure.usdt_pay}')
-                        updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
 
                         if checkUSDT(user, price_USDT) == (user, True):
                             transactionSuccess(user, price_USDT)
@@ -160,14 +174,15 @@ def main():
                 if event.attachments:
                     if event.attachments['attach1_type'] == 'link' and 'steamcommunity.com/tradeoffer' in event.attachments['attach1_url']:
                         message = event.attachments['attach1_url']
+                    else:
+                        send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост https://vk.com/shoppycsgo, либо название предмета из поста.')
 
                 if getOrderData(user, onlyStatus=True) == '3':  # Если статус заказа 'ОПЛАЧЕНО'
                     item = getOrderData(user, onlyItem=True)
                     price = getOrderData(user, onlyPrice=True)
                     try:
                         # sendTradeOffer(item, message)  # Отправка предмета пользователю
-                        updateOrder(user, price, status=4,)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
-                        pass  # Удаление заказа из активных
+                        updateOrder(user, price, status=4)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                         send_message(user, f'Ваш предмет {item} вам успешно отправлен! Примите его в течение 2 часов.')
                     except:
                         send_message(user, 'Не удалось отправить обмен. Напишите нам в ЛС')
@@ -186,7 +201,6 @@ def acceptItem(user, name, price):
     markup.add_button('Да', VkKeyboardColor.POSITIVE)
     markup.add_button('Нет', VkKeyboardColor.NEGATIVE)
     send_message(user, f'Подтвердите покупку:\n{name}\nЦена: {price} ₽', keyboard=markup)
-    addOrder(user, name, price)
 
 
 # Выбор платежной системы
