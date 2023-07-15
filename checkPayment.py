@@ -187,7 +187,7 @@ def checkQIWI(user, price):
 
             if t['status'] == 'SUCCESS' and t['type'] == 'IN':  # Если платеж прошел успешно
 
-                if t['sum']['amount'] == str(price) and t['sum']['currency'] == 643:  # Если СУММА и ВАЛЮТА платежа подходят
+                if str(t['sum']['amount']) == str(price) and t['sum']['currency'] == 643:  # Если СУММА и ВАЛЮТА платежа подходят
 
                     transaction_time = datetime.strptime(t['date'][:t['date'].find('+')].replace('T', ' '), '%Y-%m-%d %H:%M:%S')  # Время платежа
 

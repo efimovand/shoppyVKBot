@@ -2,6 +2,7 @@ from googleSheets import getStorageData, getSoldItemsData
 from ucBrowser import createBrowserUC
 from bs4 import BeautifulSoup
 import time
+from datetime import datetime
 
 
 # Определение текущего СТАТУСА предмета (доступен / продан / не найден)
@@ -11,7 +12,11 @@ def itemStatus(name):
     storage = getStorageData()
     for i in range(1, len(storage)):
         if storage[i][0] == name:
-            return True
+            date = datetime.strptime(storage[i][2], '%d.%m.%Y')  # Проверка доступности предмета
+            if date > datetime.now():  # Предмет временно недоступен
+                return True, storage[i][2]
+            else:  # Предмет доступен
+                return True
 
     # Получение данных Sold Items
     soldItems = getSoldItemsData()
