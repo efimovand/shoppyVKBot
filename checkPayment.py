@@ -17,9 +17,9 @@ def checkTinkoff(user, price):
     print('----- Starting TINKOFF scanning for USER', user, '-----')
 
     start_time = datetime.now()  # Текущее время
-    formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
+    formatted_price = "{:,.0f}".format(int(price)).replace(",", " ")  # Форматирование цены
 
-    driver = createBrowserUC(enableProxy=False, enableCookies=True)
+    driver = createBrowserUC(enableProxy=False, enableCookies=True, logging=False)
     driver.get("https://www.tinkoff.ru/events/feed/")  # Страница последних платежей Tinkoff
     time.sleep(5)
 
@@ -56,21 +56,23 @@ def checkTinkoff(user, price):
                     suitable_transactions[j].click()
                     time.sleep(3)
 
-                    transaction_date = driver.find_element('xpath', '//span[@data-qa-file="UITimelineOperationPopup"]').text.split()  # ДАТА платежа
+                    transaction_date = driver.find_element('xpath', '//span[@data-qa-type="operation-popup-time"]').text.split()  # ДАТА платежа
 
                     # ДЕНЬ и ВРЕМЯ платежа
                     transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2][:-1]
                     transaction_time = transaction_date[3]
 
-                    if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M%S')).seconds < 900:  # Если ВРЕМЯ подходит
-                        print('----- SUCCESSFUL payment from USER', user, 'with TINKOFF -----')
+                    if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M')).seconds < 3600:  # Если ВРЕМЯ подходит
+                        driver.close()
+                        driver.quit()
+                        print('----- SUCCESSFUL payment from USER', user, 'with TINKOFF -----\n')
                         return user, True
                     # # ---------- LOGGING ----------
                     # else:
                     #     print("OLD TRANSACTION")
                     # # ---------- LOGGING ----------
 
-                    driver.find_element('xpath', '//button[@@data-qa-file="details-card-close"]').click()  # Возврат на страницу истории платежей
+                    driver.find_element('xpath', '//button[@data-qa-type="details-card-close"]').click()  # Возврат на страницу истории платежей
                     time.sleep(5)
 
         # # ---------- LOGGING ----------
@@ -84,7 +86,7 @@ def checkTinkoff(user, price):
     driver.close()
     driver.quit()
 
-    print('----- TINKOFF payment from USER', user, 'has not been received -----')
+    print('----- TINKOFF payment from USER', user, 'has not been received -----\n')
 
 
 # Проверка оплаты SBER [✅]
@@ -93,10 +95,10 @@ def checkSber(user, price):
     print('----- Starting SBER scanning for USER', user, '-----')
 
     start_time = datetime.now()  # Текущее время
-    formatted_price = "{:,.0f}".format(price).replace(",", " ")  # Форматирование цены
+    formatted_price = "{:,.0f}".format(int(price)).replace(",", " ")  # Форматирование цены
 
     # Вход с СБЕРБАНК ОНЛАЙН
-    driver = createBrowserUC(enableProxy=False)
+    driver = createBrowserUC(enableProxy=False, enableCookies=True, logging=False)
     driver.get("https://online.sberbank.ru/")  # Страница входа в ЛК Сбербанк
 
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//button[@data-testid="button-continue"]')))  # Ожидание прогрузки страницы входа
@@ -143,8 +145,10 @@ def checkSber(user, price):
                 transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2]  # ДЕНЬ платежа
                 transaction_time = transaction_date[4]  # ВРЕМЯ платежа
 
-                if (start_time - datetime.strptime(transaction_day + ':' + transaction_time, '%d.%m.%Y:%H:%M')).seconds < 900:  # Если время подходит
-                    print('----- SUCCESSFUL payment from USER', user, 'with SBER -----')
+                if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M')).seconds < 900:  # Если время подходит
+                    driver.close()
+                    driver.quit()
+                    print('----- SUCCESSFUL payment from USER', user, 'with SBER -----\n')
                     return user, True
                 # # ---------- LOGGING ----------
                 # else:
@@ -197,7 +201,7 @@ def checkQIWI(user, price):
 
         time.sleep(15)
 
-    print('----- QIWI payment from USER', user, 'has not been received -----')
+    print('----- QIWI payment from USER', user, 'has not been received -----\n')
 
 
 # Проверка оплаты USDT [✅]
@@ -221,4 +225,4 @@ def checkUSDT(user, price):
 
         time.sleep(15)
 
-    print('----- USDT payment from USER', user, 'has not been received -----')
+    print('----- USDT payment from USER', user, 'has not been received -----\n')
