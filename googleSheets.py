@@ -153,7 +153,7 @@ def getSoldItemsData():
 
 
 # Создание заказа в USER ORDERS
-def addOrder(user, item, price, payment=None, status=1):
+def addOrder(user, item, price):
 
     scope = ['https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
@@ -161,11 +161,11 @@ def addOrder(user, item, price, payment=None, status=1):
 
     sheet = client.open("storageSheet").worksheet("userOrders")
 
-    sheet.append_row([user, item, price, '', status, datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M')])
+    sheet.append_row([user, item, price, '', 1, datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M')])
 
 
 # Получение информации о заказе из USER ORDERS
-def getOrderData(user, onlyPrice=False, onlyStatus=False, onlyItem=False):
+def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPayment=False):
 
     scope = ['https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
@@ -174,19 +174,23 @@ def getOrderData(user, onlyPrice=False, onlyStatus=False, onlyItem=False):
     sheet = client.open("storageSheet").worksheet("userOrders")
     data = sheet.get_all_values()
 
-    if onlyPrice:  # Если запрошена только цена
-        for row in data:
-            if row[0] == str(user):
-                return row[2]
-    elif onlyItem:
+    if onlyItem:  # Только название предмета
         for row in data:
             if row[0] == str(user):
                 return row[1]
-    elif onlyStatus:
+    elif onlyPrice:  # Только цена
+        for row in data:
+            if row[0] == str(user):
+                return row[2]
+    elif onlyStatus:  # Только статус
         for row in data:
             if row[0] == str(user):
                 return row[4]
-    else:
+    elif onlyPayment:  # Только способ оплаты
+        for row in data:
+            if row[0] == str(user):
+                return row[3]
+    else:  # Вся информация
         for row in data:
             if row[0] == str(user):
                 return row

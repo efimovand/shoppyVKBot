@@ -23,7 +23,7 @@ def checkTinkoff(user, price):
     driver.get("https://www.tinkoff.ru/events/feed/")  # Страница последних платежей Tinkoff
     time.sleep(5)
 
-    for i in range (1, 30 + 1):
+    for i in range (1, 3 + 1):  # Проверка 3 раза
 
         print("    TINKOFF attempt #", i, " for USER ", user, sep='')
 
@@ -62,7 +62,7 @@ def checkTinkoff(user, price):
                     transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2][:-1]
                     transaction_time = transaction_date[3]
 
-                    if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M')).seconds < 3600:  # Если ВРЕМЯ подходит
+                    if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M')).seconds < 900:  # Если ВРЕМЯ подходит
                         driver.close()
                         driver.quit()
                         print('----- SUCCESSFUL payment from USER', user, 'with TINKOFF -----\n')
@@ -80,7 +80,7 @@ def checkTinkoff(user, price):
         #     print("NO SUITABLE TRANSACTIONS")
         # # ---------- LOGGING ----------
 
-        time.sleep(30)  # Перерыв между попытками
+        time.sleep(15)  # Перерыв между попытками
         driver.refresh()  # Обновление страницы последних платежей
 
     driver.close()
@@ -114,7 +114,7 @@ def checkSber(user, price):
     if len(driver.find_elements('xpath', '//h2[@data-testid="stage-subheader"]')) != 0:  # Пропуск лишней страницы при входе
         driver.find_element('xpath', '//button[@data-testid="button-skip"]').click()
 
-    for i in range (1, 30 + 1):
+    for i in range (1, 3 + 1):  # Проверка 3 раза
 
         print("    SBER attempt #", i, " for USER ", user, sep='')
 
@@ -164,7 +164,7 @@ def checkSber(user, price):
         #     print("NO SUITABLE TRANSACTIONS")
         # # ---------- LOGGING ----------
 
-        time.sleep(30)  # Перерыв между попытками
+        time.sleep(15)  # Перерыв между попытками
         driver.refresh()  # Обновление страницы последних платежей
 
     driver.close()
@@ -180,7 +180,7 @@ def checkQIWI(user, price):
 
     start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
 
-    for i in range (1, 60 + 1):  # Проверка раз в 15 секунд на протяжении 15 минут
+    for i in range (1, 3 + 1):  # Проверка 3 раза
 
         print("    QIWI attempt #", i, " for USER ", user, sep='')
 
@@ -212,7 +212,7 @@ def checkUSDT(user, price):
     start_time = datetime.now()  # Текущее время
     client = Client(configure.binance_token, configure.binance_secret)
 
-    for i in range (1, 60 + 1):
+    for i in range (1, 3 + 1):  # Проверка 3 раза
 
         print("    USDT attempt #", i, " for USER ", user, sep='')
         history = client.get_deposit_history()  # Получение последних транзакций

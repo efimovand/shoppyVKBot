@@ -8,6 +8,7 @@ from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
 from supportFunctions import actualUSD
 import time
+from datetime import datetime
 
 
 vk_session = vk_api.VkApi(token=configure.group_token)
@@ -51,7 +52,7 @@ def main():
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
                 if activeOrderInfo[0]:
-                    send_message(user, f'У вас уже есть активный заказ. Завершите его, оплатив сумму @public219295292 ({activeOrderInfo[1]}) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
+                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @public219295292 ({activeOrderInfo[1]}) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
 
                 else:  # Если активного заказа нет
 
@@ -73,7 +74,7 @@ def main():
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
                 if activeOrderInfo[0]:
-                    send_message(user, f'У вас уже есть активный заказ. Завершите его, оплатив сумму @public219295292 ({activeOrderInfo[1]}) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
+                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @public219295292 ({activeOrderInfo[1]}₽) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
 
                 else:  # Если активного заказа нет
 
@@ -113,52 +114,73 @@ def main():
             # Способ оплаты
             elif message == 'Тинькофф' or message == 'СБЕР' or message == 'QIWI' or message == 'USDT':
 
-                if getOrderData(user, onlyStatus=True) == '1':  # Если текущий заказ находится в статусе 'ВЫСТАВЛЕН СЧЕТ'
+                if getOrderData(user, onlyStatus=True) == '1':  # Если текущий заказ находится в статусе 'СОЗДАН'
 
                     price = getOrderData(user, onlyPrice=True)  # Сумма заказа
                     updateOrder(user, price, status=2, payment=message)  # Обновление статуса заказа на 'ВЫСТАВЛЕН СЧЕТ'
 
+                    markup = VkKeyboard(one_time=True)
+                    markup.add_button('Оплачено', VkKeyboardColor.POSITIVE)  # Кнопка подтверждения оплаты
+
                     match message:
-
                         case 'Тинькофф':
-
-                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.tinkoff_pay})')
-
-                            if checkTinkoff(user, price) == (user, True):
-                                transactionSuccess(user, price)
-                            else:
-                                transactionError(user, price, message)
-
+                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.tinkoff_pay})', keyboard=markup)
                         case 'СБЕР':
-
-                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.sber_pay})')
-
-                            if checkSber(user, price) == (user, True):
-                                transactionSuccess(user, price)
-                            else:
-                                transactionError(user, price, message)
-
+                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.sber_pay})', keyboard=markup)
                         case 'QIWI':
-
-                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.qiwi_pay})')
-
-                            if checkQIWI(user, price) == (user, True):
-                                transactionSuccess(user, price)
-                            else:
-                                transactionError(user, price, message)
-
+                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.qiwi_pay})', keyboard=markup)
                         case 'USDT':
-
-                            price_USDT = round(price / actualUSD(), 2)  # Цена заказа в USDT
-                            send_message(user, f'Оплатите {price_USDT} USDT по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.usdt_pay})')
-
-                            if checkUSDT(user, price_USDT) == (user, True):
-                                transactionSuccess(user, price_USDT)
-                            else:
-                                transactionError(user, price, message, USDT=True)
+                            price_USDT = round(price / actualUSD(), 2)  # Сумма заказа в USDT
+                            send_message(user, f'Оплатите {price_USDT} USDT по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.usdt_pay})', keyboard=markup)
 
                 else:
-                    send_message(user, 'На данный момент у вас нет активного заказа.\nСоздайте новый, отправив название предмета или ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO)')
+                    send_message(user, 'На данный момент у вас нет активного заказа.\nСоздайте новый, отправив название предмета или ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO).')
+
+
+            # Подтверждение оплаты
+            elif message == 'Оплачено':
+
+                # Получение информации о заказе
+                orderData = getOrderData(user)
+                status = orderData[4]
+                date = datetime.strptime(orderData[5], '%d-%m-%Y %H:%M')
+                price = orderData[2]
+                payment = orderData[3]
+
+                if status == '2':  # Если текущий заказ находится в статусе 'ВЫСТАВЛЕН СЧЕТ'
+
+                    if (datetime.now() - date).seconds < 900:  # Если с момента выставления счета прошло < 15 минут
+
+                        # Проверка оплаты
+                        match payment:
+                            case 'Тинькофф':
+                                if checkTinkoff(user, price) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, message)
+                            case 'СБЕР':
+                                if checkSber(user, price) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, message)
+                            case 'QIWI':
+                                if checkQIWI(user, price) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, message)
+                            case 'USDT':
+                                price = round(price / actualUSD(), 2)  # Сумма заказа в USDT
+                                if checkUSDT(user, price) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, message)
+
+                    else:
+                        updateOrder(user, price, status=0)
+                        send_message(user, 'С момента выставления счета прошло более 15 минут. Пожалуйста, создайте заказ заново.\nЕсли произошла ошибка, напишите нам в ЛС.')
+
+                else:
+                    send_message(user, 'На данный момент у вас нет активного заказа для оплаты. Если произошла ошибка, напишите нам в ЛС')
 
 
             # Ссылка на обмен [TEXT / URL]
@@ -183,7 +205,9 @@ def main():
                             # sendTradeOffer(item, message)  # Отправка предмета пользователю
                             print(f'SENDING OFFER: "{item}"')
                             updateOrder(user, price, status=4)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
-                            send_message(user, f'Ваш предмет @public219295292 ({item}) вам успешно отправлен! Примите его в течение 2 часов.')
+                            # delWithdrawnItem()  # Удаление предмета из Storage
+                            # addSoldItem()  # Добавление предмета в Sold Items
+                            send_message(user, f'Ваш предмет @public219295292 ({item}) успешно отправлен! Примите его в течение 2 часов.')
                         except:
                             send_message(user, 'Не удалось отправить обмен. Напишите нам в ЛС')
 
@@ -195,6 +219,8 @@ def main():
 
 
             else:  # Указана неподдерживаемая фраза
+                print('STARTED SLEEPING...')
+                time.sleep(3600)
                 send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
 
 
@@ -224,9 +250,9 @@ def transactionSuccess(user, price):
 
 
 # Неуспешная оплата
-def transactionError(user, price, message, USDT=False):
+def transactionNone(user, price, message, USDT=False):
     currency = ' USDT' if USDT else '₽'
-    send_message(f'Мы не получили от вас оплату {price}{currency} на {message} в течение 15 минут. Если произошла ошибка, напишите нам в ЛС')
+    send_message(f'Мы не получили от вас оплату {price}{currency} на {message}.\nЕсли произошла ошибка, напишите нам в ЛС')
     deleteOrder(user, price)
 
 
