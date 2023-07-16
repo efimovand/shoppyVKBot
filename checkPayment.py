@@ -12,11 +12,11 @@ from supportFunctions import getMonthNumber
 
 
 # Проверка оплаты TINKOFF [✅]
-def checkTinkoff(user, price):
+def checkTinkoff(user, price, invoiceDate):
 
     print('----- Starting TINKOFF scanning for USER', user, '-----')
 
-    start_time = datetime.now()  # Текущее время
+    start_time = datetime.strptime(invoiceDate, '%d-%m-%Y %H:%M')  # Время выставления счета
     formatted_price = "{:,.0f}".format(int(price)).replace(",", " ")  # Форматирование цены
 
     driver = createBrowserUC(enableProxy=False, enableCookies=True, logging=False)
@@ -62,7 +62,7 @@ def checkTinkoff(user, price):
                     transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2][:-1]
                     transaction_time = transaction_date[3]
 
-                    if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M')).seconds < 900:  # Если ВРЕМЯ подходит
+                    if (datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M') - start_time).seconds < 900:  # Если ВРЕМЯ подходит
                         driver.close()
                         driver.quit()
                         print('----- SUCCESSFUL payment from USER', user, 'with TINKOFF -----\n')
@@ -90,11 +90,11 @@ def checkTinkoff(user, price):
 
 
 # Проверка оплаты SBER [✅]
-def checkSber(user, price):
+def checkSber(user, price, invoiceDate):
 
     print('----- Starting SBER scanning for USER', user, '-----')
 
-    start_time = datetime.now()  # Текущее время
+    start_time = datetime.strptime(invoiceDate, '%d-%m-%Y %H:%M')  # Время выставления счета
     formatted_price = "{:,.0f}".format(int(price)).replace(",", " ")  # Форматирование цены
 
     # Вход с СБЕРБАНК ОНЛАЙН
@@ -145,7 +145,7 @@ def checkSber(user, price):
                 transaction_day = transaction_date[0] + '.' + getMonthNumber(transaction_date[1]) + '.' + transaction_date[2]  # ДЕНЬ платежа
                 transaction_time = transaction_date[4]  # ВРЕМЯ платежа
 
-                if (start_time - datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M')).seconds < 900:  # Если время подходит
+                if (datetime.strptime(transaction_day + ' ' + transaction_time, '%d.%m.%Y %H:%M') - start_time).seconds < 900:  # Если время подходит
                     driver.close()
                     driver.quit()
                     print('----- SUCCESSFUL payment from USER', user, 'with SBER -----\n')
@@ -170,15 +170,15 @@ def checkSber(user, price):
     driver.close()
     driver.quit()
 
-    print('----- SBER payment from USER', user, 'has not been received -----')
+    print('----- SBER payment from USER', user, 'has not been received -----\n')
 
 
 # Проверка оплаты QIWI [✅]
-def checkQIWI(user, price):
+def checkQIWI(user, price, invoiceDate):
 
     print('----- Starting QIWI scanning for USER', user, '-----')
 
-    start_time = datetime.now() - timedelta(hours=1)  # Переход в часовой пояс МСК
+    start_time = invoiceDate - timedelta(hours=1)  # Переход в часовой пояс МСК
 
     for i in range (1, 3 + 1):  # Проверка 3 раза
 
@@ -195,8 +195,8 @@ def checkQIWI(user, price):
 
                     transaction_time = datetime.strptime(t['date'][:t['date'].find('+')].replace('T', ' '), '%Y-%m-%d %H:%M:%S')  # Время платежа
 
-                    if (start_time - transaction_time).seconds < 900:  # Если ВРЕМЯ платежа подходит
-                        print('----- SUCCESSFUL payment from USER', user, 'with QIWI -----')
+                    if (transaction_time - start_time).seconds < 900:  # Если ВРЕМЯ платежа подходит
+                        print('----- SUCCESSFUL payment from USER', user, 'with QIWI -----\n')
                         return user, True
 
         time.sleep(15)
@@ -205,11 +205,11 @@ def checkQIWI(user, price):
 
 
 # Проверка оплаты USDT [✅]
-def checkUSDT(user, price):
+def checkUSDT(user, price, invoiceDate):
 
     print('----- Starting USDT scanning for USER', user, '-----')
 
-    start_time = datetime.now()  # Текущее время
+    start_time = datetime.strptime(invoiceDate, '%d-%m-%Y %H:%M')  # Время выставления счета
     client = Client(configure.binance_token, configure.binance_secret)
 
     for i in range (1, 3 + 1):  # Проверка 3 раза
@@ -219,8 +219,8 @@ def checkUSDT(user, price):
 
         for transaction in history:
             if str(transaction['amount']) == str(price) and transaction['coin'] == 'USDT' and transaction['confirmTimes'] == '1/1':  # Если СУММА, СТАТУС и ВАЛЮТА платежа подходят
-                if (start_time - datetime.fromtimestamp(transaction['insertTime'] / 1000)).seconds < 900:  # Если ВРЕМЯ платежа подходит
-                    print('----- SUCCESSFUL payment from USER', user, 'with USDT -----')
+                if (datetime.fromtimestamp(transaction['insertTime'] / 1000) - start_time).seconds < 900:  # Если ВРЕМЯ платежа подходит
+                    print('----- SUCCESSFUL payment from USER', user, 'with USDT -----\n')
                     return user, True
 
         time.sleep(15)

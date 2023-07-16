@@ -142,38 +142,38 @@ def main():
 
                 # Получение информации о заказе
                 orderData = getOrderData(user)
-                status = orderData[4]
-                date = datetime.strptime(orderData[5], '%d-%m-%Y %H:%M')
-                price = orderData[2]
-                payment = orderData[3]
+                status = orderData[4]  # Статус
+                invoiceDate = datetime.strptime(orderData[5], '%d-%m-%Y %H:%M')  # Время выставления счета
+                price = orderData[2]  # Сумма
+                payment = orderData[3]  # Способ оплаты
 
                 if status == '2':  # Если текущий заказ находится в статусе 'ВЫСТАВЛЕН СЧЕТ'
 
-                    if (datetime.now() - date).seconds < 900:  # Если с момента выставления счета прошло < 15 минут
+                    if (datetime.now() - invoiceDate).seconds < 900:  # Если с момента выставления счета прошло < 15 минут
 
                         # Проверка оплаты
                         match payment:
                             case 'Тинькофф':
-                                if checkTinkoff(user, price) == (user, True):
+                                if checkTinkoff(user, price, invoiceDate) == (user, True):
                                     transactionSuccess(user, price)
                                 else:
-                                    transactionNone(user, price, message)
+                                    transactionNone(user, price, payment)
                             case 'СБЕР':
-                                if checkSber(user, price) == (user, True):
+                                if checkSber(user, price, invoiceDate) == (user, True):
                                     transactionSuccess(user, price)
                                 else:
-                                    transactionNone(user, price, message)
+                                    transactionNone(user, price, payment)
                             case 'QIWI':
-                                if checkQIWI(user, price) == (user, True):
+                                if checkQIWI(user, price, invoiceDate) == (user, True):
                                     transactionSuccess(user, price)
                                 else:
-                                    transactionNone(user, price, message)
+                                    transactionNone(user, price, payment)
                             case 'USDT':
                                 price = round(price / actualUSD(), 2)  # Сумма заказа в USDT
-                                if checkUSDT(user, price) == (user, True):
+                                if checkUSDT(user, price, invoiceDate) == (user, True):
                                     transactionSuccess(user, price)
                                 else:
-                                    transactionNone(user, price, message)
+                                    transactionNone(user, price, payment)
 
                     else:
                         updateOrder(user, price, status=0)
@@ -207,7 +207,7 @@ def main():
                             updateOrder(user, price, status=4)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                             # delWithdrawnItem()  # Удаление предмета из Storage
                             # addSoldItem()  # Добавление предмета в Sold Items
-                            send_message(user, f'Ваш предмет @public219295292 ({item}) успешно отправлен! Примите его в течение 2 часов.')
+                            send_message(user, f'Предмет @public219295292 ({item}) успешно вам отправлен! Примите его в течение 2 часов.')
                         except:
                             send_message(user, 'Не удалось отправить обмен. Напишите нам в ЛС')
 
@@ -250,9 +250,9 @@ def transactionSuccess(user, price):
 
 
 # Неуспешная оплата
-def transactionNone(user, price, message, USDT=False):
+def transactionNone(user, price, payment, USDT=False):
     currency = ' USDT' if USDT else '₽'
-    send_message(f'Мы не получили от вас оплату {price}{currency} на {message}.\nЕсли произошла ошибка, напишите нам в ЛС')
+    send_message(f'Мы не получили от вас оплату {price}{currency} на {payment}.\nЕсли произошла ошибка, напишите нам в ЛС')
     deleteOrder(user, price)
 
 

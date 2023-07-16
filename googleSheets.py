@@ -161,7 +161,7 @@ def addOrder(user, item, price):
 
     sheet = client.open("storageSheet").worksheet("userOrders")
 
-    sheet.append_row([user, item, price, '', 1, datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M')])
+    sheet.append_row([user, item, price, '', 1, ''])
 
 
 # Получение информации о заказе из USER ORDERS
@@ -207,12 +207,13 @@ def updateOrder(user, price, status, payment=''):
     data = sheet.get_all_values()
 
     match status:
-        case 2:
+        case 2:  # Выставлен счет
             for row in range (1, len(data)):
-                if data[row][0] == str(user) and data[row][2] == str(price):
+                if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '1':
                     sheet.update_acell(f'D{row + 1}', payment)
                     sheet.update_acell(f'E{row + 1}', status)
-        case 3|4:
+                    sheet.update_acell(f'F{row + 1}', datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M'))
+        case 3|4:  # Оплачен / Выполнен
             for row in range (1, len(data)):
                 if data[row][0] == str(user) and data[row][2] == str(price):
                     sheet.update_acell(f'E{row + 1}', status)
