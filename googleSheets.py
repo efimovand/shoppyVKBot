@@ -165,7 +165,7 @@ def addOrder(user, item, price):
 
 
 # Получение информации о заказе из USER ORDERS
-def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPayment=False):
+def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPayment=False, onlyInvoiceDate=False, onlyTradeLink=False):
 
     scope = ['https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
@@ -190,6 +190,14 @@ def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPa
         for row in data:
             if row[0] == str(user):
                 return row[3]
+    elif onlyInvoiceDate:  # Только способ оплаты
+        for row in data:
+            if row[0] == str(user):
+                return row[5]
+    elif onlyTradeLink:  # Только способ оплаты
+        for row in data:
+            if row[0] == str(user):
+                return row[6]
     else:  # Вся информация
         for row in data:
             if row[0] == str(user):
@@ -197,7 +205,7 @@ def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPa
 
 
 # Обновить информацию о заказе из USER ORDERS
-def updateOrder(user, price, status, payment=''):
+def updateOrder(user, price, status, payment='', tradeLink=''):
 
     scope = ['https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
@@ -207,16 +215,24 @@ def updateOrder(user, price, status, payment=''):
     data = sheet.get_all_values()
 
     match status:
+
         case 2:  # Выставлен счет
             for row in range (1, len(data)):
                 if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '1':
                     sheet.update_acell(f'D{row + 1}', payment)
                     sheet.update_acell(f'E{row + 1}', status)
                     sheet.update_acell(f'F{row + 1}', datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M'))
-        case 3|4:  # Оплачен / Выполнен
+
+        case 3:  # Оплачен
             for row in range (1, len(data)):
                 if data[row][0] == str(user) and data[row][2] == str(price):
                     sheet.update_acell(f'E{row + 1}', status)
+
+        case 4:  # Выполнен
+            for row in range(1, len(data)):
+                if data[row][0] == str(user) and data[row][2] == str(price):
+                    sheet.update_acell(f'E{row + 1}', status)
+                    sheet.update_acell(f'G{row + 1}', tradeLink)
 
 
 # Удаление заказа из USER ORDERS

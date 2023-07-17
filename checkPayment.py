@@ -67,18 +67,14 @@ def checkTinkoff(user, price, invoiceDate):
                         driver.quit()
                         print('----- SUCCESSFUL payment from USER', user, 'with TINKOFF -----\n')
                         return user, True
-                    # # ---------- LOGGING ----------
                     # else:
                     #     print("OLD TRANSACTION")
-                    # # ---------- LOGGING ----------
 
                     driver.find_element('xpath', '//button[@data-qa-type="details-card-close"]').click()  # Возврат на страницу истории платежей
                     time.sleep(5)
 
-        # # ---------- LOGGING ----------
         # else:
         #     print("NO SUITABLE TRANSACTIONS")
-        # # ---------- LOGGING ----------
 
         time.sleep(15)  # Перерыв между попытками
         driver.refresh()  # Обновление страницы последних платежей
@@ -150,19 +146,15 @@ def checkSber(user, price, invoiceDate):
                     driver.quit()
                     print('----- SUCCESSFUL payment from USER', user, 'with SBER -----\n')
                     return user, True
-                # # ---------- LOGGING ----------
                 # else:
                 #     print("OLD TRANSACTION")
-                # # ---------- LOGGING ----------
 
                 driver.back()  # Возврат на страницу истории платежей
                 WebDriverWait(driver, 10).until(EC.element_to_be_clickable(("xpath", '//span[@class="scaffold__region-header-link-full"]')))  # Ожидание прогрузки страницы последних платежей
                 time.sleep(5)
 
-        # # ---------- LOGGING ----------
         # else:
         #     print("NO SUITABLE TRANSACTIONS")
-        # # ---------- LOGGING ----------
 
         time.sleep(15)  # Перерыв между попытками
         driver.refresh()  # Обновление страницы последних платежей

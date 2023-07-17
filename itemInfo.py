@@ -12,7 +12,7 @@ def itemStatus(name):
     storage = getStorageData()
     for i in range(1, len(storage)):
         if storage[i][0] == name:
-            date = datetime.strptime(storage[i][2], '%d.%m.%Y')  # Проверка доступности предмета
+            date = datetime.strptime(storage[i][2] + ' 11:00', '%d.%m.%Y %H:%M')  # Проверка доступности предмета
             if date > datetime.now():  # Предмет временно недоступен
                 return True, storage[i][2]
             else:  # Предмет доступен
