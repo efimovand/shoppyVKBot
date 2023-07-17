@@ -18,9 +18,9 @@ longpoll = VkLongPoll(vk_session)
 # Функция отправки сообщения пользователю
 def send_message(user_id, message, keyboard=None):
     if not keyboard:
-        vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0})
+        vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0, 'dont_parse_links': 1})
     else:
-        vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0, 'keyboard': keyboard.get_keyboard()})
+        vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0, 'dont_parse_links': 1, 'keyboard': keyboard.get_keyboard()})
 
 
 # Функция получения предыдущего сообщения в диалоге
@@ -74,7 +74,7 @@ def main():
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
                 if activeOrderInfo[0]:
-                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @public219295292 ({activeOrderInfo[1]}₽) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
+                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @public219295292 ({activeOrderInfo[1]} ₽) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
 
                 else:  # Если активного заказа нет
 
@@ -98,17 +98,12 @@ def main():
 
                         # Получение информации о предмете
                         last_message_text = last_message['text']
-                        price = last_message_text[last_message_text.rfind('Цена: ') + 6:last_message_text.rfind(' ₽')]  # Цена
+                        item = last_message_text[last_message_text.find('|') + 1:last_message_text.find(']')]  # Название
+                        price = last_message_text[last_message_text.find('Цена: ') + 21:last_message_text.find(' ₽')]  # Цена
 
-                        # Создание заказа в БД
-                        if last_message_text.find('Предмет будет отправлен') == -1:  # Покупка
-                            item = last_message_text[last_message_text.find('\n') + 1:last_message_text.rfind('\n')]  # Название
-                            addOrder(user, item, price)
-                        else:  # Бронь
-                            item = last_message_text[last_message_text.find('\n') + 1:last_message_text.rfind('\n')]  # Название
-                            item = item[:item.find('\n')]
-                            addOrder(user, item + '*', price)
+                        item += '' if last_message_text.find('Предмет будет отправлен') == -1 else '*'  # Покупка / Бронь
 
+                        addOrder(user, item, price)  # Создание заказа в БД
                         choosePaymentSystem(user)  # Выбор платежной системы
 
                     else:
@@ -131,14 +126,14 @@ def main():
 
                     match message:
                         case 'Тинькофф':
-                            send_message(user, f'Оплатите {price} ₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.tinkoff_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @public219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.tinkoff_pay})', keyboard=markup)
                         case 'СБЕР':
-                            send_message(user, f'Оплатите {price} ₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.sber_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @public219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.sber_pay})', keyboard=markup)
                         case 'QIWI':
-                            send_message(user, f'Оплатите {price} ₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.qiwi_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @public219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.qiwi_pay})', keyboard=markup)
                         case 'USDT':
                             price_USDT = round(price / actualUSD(), 2)  # Сумма заказа в USDT
-                            send_message(user, f'Оплатите {price_USDT} USDT по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.usdt_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @public219295292 ({price_USDT}) USDT по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.usdt_pay})', keyboard=markup)
 
                 else:
                     send_message(user, 'На данный момент у вас нет активного заказа.\nСоздайте новый, отправив название предмета или ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO).')
@@ -221,7 +216,7 @@ def main():
                                 updateOrder(user, price, status=4, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                                 # delWithdrawnItem()  # Удаление предмета из Storage
                                 # addSoldItem()  # Добавление предмета в Sold Items
-                                send_message(user, f'Предмет @public219295292 ({item}) успешно вам отправлен! Примите его в течение 2 часов.')
+                                send_message(user, f'Предмет [club219295292|{item}] успешно вам отправлен! Примите его в течение 2 часов.')
                             except:
                                 send_message(user, 'Не удалось отправить обмен. Напишите нам в ЛС')
 
@@ -229,7 +224,7 @@ def main():
                             print(f'ITEM HAS BEEN BOOKED: "{item.replace("*", "")}"')
                             sendDate = itemStatus(item.replace("*", ""))[1]  # Дата отправки предмета
                             updateOrder(user, price, status=4, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
-                            send_message(user, f'Предмет @public219295292 ({item.replace("*", "")}) успешно забронирован!\nОн будет отправлен вам {sendDate} в 10:00 по МСК.')
+                            send_message(user, f'Предмет [club219295292|{item.replace("*", "")}] успешно забронирован!\nОн будет отправлен вам {sendDate} в 10:00 по МСК.')
 
                     case _:
                         send_message(user, 'У вас нет текущих заказов. Если произошла ошибка, напишите нам в ЛС')
@@ -240,16 +235,16 @@ def main():
 
 
 # Подтверждение заказа
-def acceptItem(user, name, price, sendDate=''):
+def acceptItem(user, item, price, sendDate=''):
 
     markup = VkKeyboard(one_time=True)
     markup.add_button('Да', VkKeyboardColor.POSITIVE)
     markup.add_button('Нет', VkKeyboardColor.NEGATIVE)
 
     if not sendDate:  # Если предмет доступен для обмена
-        send_message(user, f'Подтвердите покупку:\n{name}\nЦена: {price} ₽', keyboard=markup)
+        send_message(user, f'Подтвердите покупку:\n[club219295292|{item}]\nЦена: @public219295292 ({price} ₽)', keyboard=markup)
     else:
-        send_message(user, f'Подтвердите покупку:\n{name}\nЦена: {price} ₽\nПредмет будет отправлен {sendDate} в 10:00 МСК', keyboard=markup)
+        send_message(user, f'Подтвердите покупку:\n[club219295292|{item}]\nЦена: @public219295292 ({price} ₽)\nПредмет будет отправлен @public219295292 ({sendDate} в 10:00 МСК).', keyboard=markup)
 
 
 # Выбор платежной системы
@@ -303,7 +298,7 @@ def respondOnItemStatus(user, item, wallPrice, price=''):
             acceptItem(user, item, item_price, sendDate=itemActualStatus[1])  # Подтверждение покупки предмета
 
         case False:  # Продан
-            send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, скоро новое поступление! 🚚')
+            send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, совсем скоро новое поступление! 🚚')
 
         case None:  # Отсутствует
             send_message(user, 'К сожалению, данный предмет не найден. Попробуйте указать ссылку на пост с предметом или повторите попытку позже.')

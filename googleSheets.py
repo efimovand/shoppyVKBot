@@ -230,7 +230,7 @@ def isActiveOrder(user):
     client = gspread.authorize(creds)
 
     sheet = client.open("storageSheet").worksheet("userOrders")
-    data = reversed(sheet.get_all_values()[1:])  # Таблица с конца
+    data = sheet.get_all_values()
 
     for row in range(1, len(data)):
         if data[row][0] == str(user) and data[row][4] != '4':
