@@ -52,7 +52,7 @@ def main():
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
                 if activeOrderInfo[0]:
-                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @public219295292 ({activeOrderInfo[1]}) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
+                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @club219295292 ({activeOrderInfo[1]}) на @club219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
 
                 else:  # Если активного заказа нет
 
@@ -74,7 +74,7 @@ def main():
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
                 if activeOrderInfo[0]:
-                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @public219295292 ({activeOrderInfo[1]} ₽) на @public219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
+                    send_message(user, f'У вас уже есть активный заказ.\nЗавершите его, оплатив @club219295292 ({activeOrderInfo[1]} ₽) на @club219295292 ({activeOrderInfo[2]}), или дождитесь истечения времени оплаты — 15 минут.')
 
                 else:  # Если активного заказа нет
 
@@ -107,7 +107,7 @@ def main():
                         choosePaymentSystem(user)  # Выбор платежной системы
 
                     else:
-                        send_message(user, 'Возможно, произошла ошибка.\n\nПожалуйста, укажите ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
+                        send_message(user, 'Возможно, произошла ошибка.\n\nПожалуйста, укажите ссылку на пост @club219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
 
                 else:
                     send_message(user, 'Проверьте ссылку на пост и попробуйте отправить ее заново. Если ошибка сохраняется, напишите @id222224804 (Администратору) - он сам проведет оплату и отправит вам предмет.')
@@ -126,17 +126,17 @@ def main():
 
                     match message:
                         case 'Тинькофф':
-                            send_message(user, f'Оплатите @public219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.tinkoff_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @club219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@club219295292 ({configure.tinkoff_pay})', keyboard=markup)
                         case 'СБЕР':
-                            send_message(user, f'Оплатите @public219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.sber_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @club219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@club219295292 ({configure.sber_pay})', keyboard=markup)
                         case 'QIWI':
-                            send_message(user, f'Оплатите @public219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.qiwi_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @club219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@club219295292 ({configure.qiwi_pay})', keyboard=markup)
                         case 'USDT':
                             price_USDT = round(price / actualUSD(), 2)  # Сумма заказа в USDT
-                            send_message(user, f'Оплатите @public219295292 ({price_USDT}) USDT по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.usdt_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите @club219295292 ({price_USDT}) USDT по указанным реквизитам в течение 15 минут:\n@club219295292 ({configure.usdt_pay})', keyboard=markup)
 
                 else:
-                    send_message(user, 'На данный момент у вас нет активного заказа.\nСоздайте новый, отправив название предмета или ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO).')
+                    send_message(user, 'На данный момент у вас нет активного заказа.\nСоздайте новый, отправив название предмета или ссылку на пост @club219295292 (SHOPPY | Продажа скинов CS:GO).')
 
 
             # Подтверждение оплаты
@@ -155,31 +155,31 @@ def main():
 
                     if (datetime.now() - invoiceDate).seconds < 900:  # Если с момента выставления счета прошло < 15 минут
 
-                        # # Проверка оплаты
-                        # match payment:
-                        #     case 'Тинькофф':
-                        #         if checkTinkoff(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
-                        #     case 'СБЕР':
-                        #         if checkSber(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
-                        #     case 'QIWI':
-                        #         if checkQIWI(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
-                        #     case 'USDT':
-                        #         price = round(price / actualUSD(), 2)  # Сумма заказа в USDT
-                        #         if checkUSDT(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
+                        # Проверка оплаты
+                        match payment:
+                            case 'Тинькофф':
+                                if checkTinkoff(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
+                            case 'СБЕР':
+                                if checkSber(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
+                            case 'QIWI':
+                                if checkQIWI(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
+                            case 'USDT':
+                                price = round(price / actualUSD(), 2)  # Сумма заказа в USDT
+                                if checkUSDT(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
 
-                        transactionSuccess(user, price)
+                        # transactionSuccess(user, price)
 
                     else:
                         updateOrder(user, price, status=0)
@@ -197,7 +197,7 @@ def main():
                     if event.attachments['attach1_type'] == 'link' and 'steamcommunity.com/tradeoffer' in event.attachments['attach1_url']:
                         message = event.attachments['attach1_url']
                     else:
-                        send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
+                        send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост @club219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
 
                 match getOrderData(user, onlyStatus=True):  # Проверка статуса заказа
 
@@ -224,14 +224,14 @@ def main():
                             print(f'ITEM HAS BEEN BOOKED: "{item.replace("*", "")}"')
                             sendDate = itemStatus(item.replace("*", ""))[1]  # Дата отправки предмета
                             updateOrder(user, price, status=4, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
-                            send_message(user, f'Предмет [club219295292|{item.replace("*", "")}] успешно забронирован!\nОн будет отправлен вам {sendDate} в 10:00 по МСК.')
+                            send_message(user, f'Предмет [club219295292|{item.replace("*", "")}] успешно забронирован!\nОн будет отправлен вам @club219295292 ({sendDate}) в 10:00 по МСК.')
 
                     case _:
                         send_message(user, 'У вас нет текущих заказов. Если произошла ошибка, напишите нам в ЛС')
 
 
             else:  # Указана неподдерживаемая фраза
-                send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост @public219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
+                send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост @club219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
 
 
 # Подтверждение заказа
@@ -242,9 +242,9 @@ def acceptItem(user, item, price, sendDate=''):
     markup.add_button('Нет', VkKeyboardColor.NEGATIVE)
 
     if not sendDate:  # Если предмет доступен для обмена
-        send_message(user, f'Подтвердите покупку:\n[club219295292|{item}]\nЦена: @public219295292 ({price} ₽)', keyboard=markup)
+        send_message(user, f'Подтвердите покупку:\n[club219295292|{item}]\nЦена: @club219295292 ({price} ₽)', keyboard=markup)
     else:
-        send_message(user, f'Подтвердите покупку:\n[club219295292|{item}]\nЦена: @public219295292 ({price} ₽)\nПредмет будет отправлен @public219295292 ({sendDate} в 10:00 МСК).', keyboard=markup)
+        send_message(user, f'Подтвердите покупку:\n[club219295292|{item}]\nЦена: @club219295292 ({price} ₽)\nПредмет будет отправлен @club219295292 ({sendDate} в 10:00 МСК).', keyboard=markup)
 
 
 # Выбор платежной системы
@@ -294,7 +294,7 @@ def respondOnItemStatus(user, item, wallPrice, price=''):
 
         case True, str():  # Недоступен для обмена
             item_price = itemWallPrice(item) if wallPrice else price  # Поиск цены предмета
-            send_message(user, f'Обратите внимание, что предмет будет доступен для обмена @public219295292 ({itemActualStatus[1]} в 10:00 МСК).\nЕсли вы оплатите его сейчас, мы забронируем предмет и отправим его вам в указанную дату.')
+            send_message(user, f'Обратите внимание, что предмет будет доступен для обмена @club219295292 ({itemActualStatus[1]} в 10:00 МСК).\nЕсли вы оплатите его сейчас, мы забронируем предмет и отправим его вам в указанную дату.')
             acceptItem(user, item, item_price, sendDate=itemActualStatus[1])  # Подтверждение покупки предмета
 
         case False:  # Продан
