@@ -98,14 +98,16 @@ def main():
 
                         # Получение информации о предмете
                         last_message_text = last_message['text']
-                        item = last_message_text[last_message_text.find('\n') + 1:last_message_text.rfind('\n')]
-                        price = last_message_text[last_message_text.rfind('Цена: ') + 6:last_message_text.rfind(' ₽')]
+                        price = last_message_text[last_message_text.rfind('Цена: ') + 6:last_message_text.rfind(' ₽')]  # Цена
 
                         # Создание заказа в БД
                         if last_message_text.find('Предмет будет отправлен') == -1:  # Покупка
+                            item = last_message_text[last_message_text.find('\n') + 1:last_message_text.rfind('\n')]  # Название
                             addOrder(user, item, price)
-                        else:
-                            addOrder(user, item + '*', price)  # Бронь
+                        else:  # Бронь
+                            item = last_message_text[last_message_text.find('\n') + 1:last_message_text.rfind('\n')]  # Название
+                            item = item[:item.find('\n')]
+                            addOrder(user, item + '*', price)
 
                         choosePaymentSystem(user)  # Выбор платежной системы
 
@@ -129,11 +131,11 @@ def main():
 
                     match message:
                         case 'Тинькофф':
-                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.tinkoff_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите {price} ₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.tinkoff_pay})', keyboard=markup)
                         case 'СБЕР':
-                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.sber_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите {price} ₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.sber_pay})', keyboard=markup)
                         case 'QIWI':
-                            send_message(user, f'Оплатите {price}₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.qiwi_pay})', keyboard=markup)
+                            send_message(user, f'Оплатите {price} ₽ по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.qiwi_pay})', keyboard=markup)
                         case 'USDT':
                             price_USDT = round(price / actualUSD(), 2)  # Сумма заказа в USDT
                             send_message(user, f'Оплатите {price_USDT} USDT по указанным реквизитам в течение 15 минут:\n@public219295292 ({configure.usdt_pay})', keyboard=markup)
@@ -144,6 +146,8 @@ def main():
 
             # Подтверждение оплаты
             elif message == 'Оплачено':
+
+                send_message(user, 'Проверяю оплату... 🔎')
 
                 # Получение информации о заказе
                 orderData = getOrderData(user)
@@ -294,7 +298,7 @@ def respondOnItemStatus(user, item, wallPrice, price=''):
         case True, str():  # Недоступен для обмена
             item_price = itemWallPrice(item) if wallPrice else price  # Поиск цены предмета
             send_message(user, f'Обратите внимание, что предмет будет доступен для обмена @public219295292 ({itemActualStatus[1]} в 10:00 МСК).\nЕсли вы оплатите его сейчас, мы забронируем предмет и отправим его вам в указанную дату.')
-            acceptItem(user, item, item_price)  # Подтверждение покупки предмета
+            acceptItem(user, item, item_price, sendDate=itemActualStatus[1])  # Подтверждение покупки предмета
 
         case False:  # Продан
             send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, скоро новое поступление! 🚚')
