@@ -160,29 +160,31 @@ def main():
 
                     if (datetime.now() - invoiceDate).seconds < 900:  # Если с момента выставления счета прошло < 15 минут
 
-                        # Проверка оплаты
-                        match payment:
-                            case 'Тинькофф':
-                                if checkTinkoff(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
-                            case 'СБЕР':
-                                if checkSber(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
-                            case 'QIWI':
-                                if checkQIWI(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
-                            case 'USDT':
-                                price = round(price / actualUSD(), 2)  # Сумма заказа в USDT
-                                if checkUSDT(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
+                        # # Проверка оплаты
+                        # match payment:
+                        #     case 'Тинькофф':
+                        #         if checkTinkoff(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
+                        #     case 'СБЕР':
+                        #         if checkSber(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
+                        #     case 'QIWI':
+                        #         if checkQIWI(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
+                        #     case 'USDT':
+                        #         price = round(price / actualUSD(), 2)  # Сумма заказа в USDT
+                        #         if checkUSDT(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
+
+                        transactionSuccess(user, price)
 
                     else:
                         updateOrder(user, price, status=0)

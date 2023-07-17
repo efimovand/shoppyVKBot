@@ -17,32 +17,18 @@ httpAuth = credentials.authorize(httplib2.Http()) # Авторизуемся в 
 service = discovery.build('sheets', 'v4', http = httpAuth) # Выбираем работу с таблицами и 4 версию API
 
 
-# # Создание новой таблицы
-# spreadsheet = service.spreadsheets().create(body = {
-#     'properties': {'title': 'storageSheet', 'locale': 'ru_RU'},
-#     'sheets': [{'properties': {'sheetType': 'GRID',
-#                                'sheetId': 0,
-#                                'title': 'List 1',
-#                                'gridProperties': {'rowCount': 100, 'columnCount': 7}}}]
-# }).execute()
-#
-# spreadsheetId = configure.storageSheet_sheet  # Идентификатор файла
-#
-# # Выдаем доступ к таблице
-# driveService = discovery.build('drive', 'v3', http = httpAuth) # Выбираем работу с Google Drive и 3 версию API
-#
-# access = driveService.permissions().create(
-#     fileId = spreadsheetId,
-#     body = {'type': 'user', 'role': 'writer', 'emailAddress': configure.egor_email},  # Открываем доступ на редактирование
-#     fields = 'id'
-# ).execute()
-#
-# access = driveService.permissions().create(
-#     fileId = spreadsheetId,
-#     body = {'type': 'user', 'role': 'writer', 'emailAddress': configure.andrey_email},  # Открываем доступ на редактирование
-#     fields = 'id'
-# ).execute()
+# -------------------- STORAGE --------------------
 
+# Извлечение всех данных из STORAGE SHEET
+def getStorageData():
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("storageSheet")
+
+    return sheet.get_all_values()
 
 # Добавление предмета в таблицу ХРАНИЛИЩА
 def addWithdrawnItem(name, buyDate, sellDate, buyPrice, minPrice, quickSell, MP_profit, QS_profit, account):
@@ -57,7 +43,6 @@ def addWithdrawnItem(name, buyDate, sellDate, buyPrice, minPrice, quickSell, MP_
     sheet.append_row([name, buyDate, sellDate, int(buyPrice), int(minPrice), int(quickSell), MP_profit, QS_profit, account])  # Добавление строки со значениями
 
     # print('UPDATED STORAGE SHEET:', 'https://docs.google.com/spreadsheets/d/' + configure.storageSheet_sheet)  # Ссылка на таблицу
-
 
 # Удаление предмета из таблицы ХРАНИЛИЩА
 def delWithdrawnItem(name):
@@ -84,6 +69,8 @@ def delWithdrawnItem(name):
     else:
         print("THERE ISN'T SUCH ITEM IN THE TABLE")  # Такого предмета нет в таблице
 
+
+# -------------------- SOLD ITEMS --------------------
 
 # Добавление предмета в таблицу ПРОДАННЫХ СКИНОВ
 def addSoldItem(name, buyPrice, sellPrice, account):
@@ -127,19 +114,6 @@ def addSoldItem(name, buyPrice, sellPrice, account):
 
     # print('UPDATED SOLD ITEMS SHEET:', 'https://docs.google.com/spreadsheets/d/' + configure.soldItems_sheet)  # Ссылка на таблицу
 
-
-# Извлечение всех данных из STORAGE SHEET
-def getStorageData():
-
-    scope = ['https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
-    client = gspread.authorize(creds)
-
-    sheet = client.open("storageSheet").worksheet("storageSheet")
-
-    return sheet.get_all_values()
-
-
 # Извлечение всех данных из SOLD ITEMS SHEET
 def getSoldItemsData():
 
@@ -152,6 +126,8 @@ def getSoldItemsData():
     return sheet.get_all_values()
 
 
+# -------------------- USER ORDERS --------------------
+
 # Создание заказа в USER ORDERS
 def addOrder(user, item, price):
 
@@ -163,7 +139,6 @@ def addOrder(user, item, price):
 
     sheet.append_row([user, item, price, '', 1, ''])
 
-
 # Получение информации о заказе из USER ORDERS
 def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPayment=False, onlyInvoiceDate=False, onlyTradeLink=False):
 
@@ -172,7 +147,7 @@ def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPa
     client = gspread.authorize(creds)
 
     sheet = client.open("storageSheet").worksheet("userOrders")
-    data = sheet.get_all_values()
+    data = reversed(sheet.get_all_values()[1:])  # Таблица с конца
 
     if onlyItem:  # Только название предмета
         for row in data:
@@ -203,7 +178,6 @@ def getOrderData(user, onlyItem=False, onlyPrice=False, onlyStatus=False, onlyPa
             if row[0] == str(user):
                 return row
 
-
 # Обновить информацию о заказе из USER ORDERS
 def updateOrder(user, price, status, payment='', tradeLink=''):
 
@@ -225,15 +199,14 @@ def updateOrder(user, price, status, payment='', tradeLink=''):
 
         case 3:  # Оплачен
             for row in range (1, len(data)):
-                if data[row][0] == str(user) and data[row][2] == str(price):
+                if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '2':
                     sheet.update_acell(f'E{row + 1}', status)
 
         case 4:  # Выполнен
             for row in range(1, len(data)):
-                if data[row][0] == str(user) and data[row][2] == str(price):
+                if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '3':
                     sheet.update_acell(f'E{row + 1}', status)
                     sheet.update_acell(f'G{row + 1}', tradeLink)
-
 
 # Удаление заказа из USER ORDERS
 def deleteOrder(user, price):
@@ -249,7 +222,6 @@ def deleteOrder(user, price):
         if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '2':
             sheet.delete_rows(row + 1, row + 1)
 
-
 # Проверка наличия активного заказа у пользователя
 def isActiveOrder(user):
 
@@ -258,7 +230,7 @@ def isActiveOrder(user):
     client = gspread.authorize(creds)
 
     sheet = client.open("storageSheet").worksheet("userOrders")
-    data = sheet.get_all_values()
+    data = reversed(sheet.get_all_values()[1:])  # Таблица с конца
 
     for row in range(1, len(data)):
         if data[row][0] == str(user) and data[row][4] != '4':
