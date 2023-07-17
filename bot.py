@@ -211,8 +211,8 @@ def main():
 
                         if not '*' in item:  # Покупка
                             try:
-                                # sendTradeOffer(item, message)  # Отправка предмета пользователю
                                 print(f'SENDING OFFER: "{item}"')
+                                # sendTradeOffer(item, message)  # Отправка предмета пользователю
                                 updateOrder(user, price, status=4, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                                 # delWithdrawnItem()  # Удаление предмета из Storage
                                 # addSoldItem()  # Добавление предмета в Sold Items
@@ -223,7 +223,7 @@ def main():
                         else:  # Бронь
                             print(f'ITEM HAS BEEN BOOKED: "{item.replace("*", "")}"')
                             sendDate = itemStatus(item.replace("*", ""))[1]  # Дата отправки предмета
-                            updateOrder(user, price, status=4, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
+                            updateOrder(user, price, status=3, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                             send_message(user, f'Предмет [club219295292|{item.replace("*", "")}] успешно забронирован!\nОн будет отправлен вам @club219295292 ({sendDate}) в 10:00 по МСК.')
 
                     case _:

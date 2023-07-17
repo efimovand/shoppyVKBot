@@ -128,6 +128,17 @@ def getSoldItemsData():
 
 # -------------------- USER ORDERS --------------------
 
+# Извлечение всех данных из USER ORDERS
+def getUserOrdersData():
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("userOrders")
+
+    return sheet.get_all_values()
+
 # Создание заказа в USER ORDERS
 def addOrder(user, item, price):
 
@@ -201,12 +212,15 @@ def updateOrder(user, price, status, payment='', tradeLink=''):
             for row in range (1, len(data)):
                 if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '2':
                     sheet.update_acell(f'E{row + 1}', status)
+                    sheet.update_acell(f'G{row + 1}', tradeLink)
 
         case 4:  # Выполнен
             for row in range(1, len(data)):
                 if data[row][0] == str(user) and data[row][2] == str(price) and data[row][4] == '3':
                     sheet.update_acell(f'E{row + 1}', status)
-                    sheet.update_acell(f'G{row + 1}', tradeLink)
+                    if data[row][6] == '':
+                        sheet.update_acell(f'G{row + 1}', tradeLink)
+
 
 # Удаление заказа из USER ORDERS
 def deleteOrder(user, price):
