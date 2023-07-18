@@ -3,8 +3,8 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardButton, VkKeyboardColor
 import configure
 from itemStatus import itemStatus
-from wallFunctions import itemWallPrice, parsePost
-from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder, delWithdrawnItem, addSoldItem, isInRealUsers, addRealUser, updateRealUser, getRealUserData
+from wallFunctions import itemWallInfo, parsePost, editSoldPost
+from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder, delWithdrawnItem, addSoldItem, isInRealUsers, addRealUser, updateRealUser, getRealUserData, getStorageItemData
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
 from supportFunctions import actualUSD
@@ -24,22 +24,13 @@ def send_message(user_id, message, keyboard=None):
         vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0, 'dont_parse_links': 1, 'keyboard': keyboard.get_keyboard()})
 
 
-# # Функция получения предыдущего сообщения в диалоге
-# def get_last_message(user_id, onlyText=False):
-#     last_messages = vk_session.method('messages.getHistory', {'offset': 1, 'count': 1, 'user_id': user_id, 'peer_id': user_id, 'rev': 0, 'group_id': 219295292})
-#     if onlyText:
-#         return last_messages['items'][0]['text']
-#     else:
-#         return last_messages['items'][0]
-
-
 # Функция получения предыдущего сообщения в диалоге
 def get_last_message(user_id, onlyText=False):
-    last_messages = vk_session.method('messages.getHistory', {'offset': 0, 'count': 10, 'user_id': user_id, 'peer_id': user_id, 'rev': 0, 'group_id': 219295292})
+    last_messages = vk_session.method('messages.getHistory', {'offset': 1, 'count': 1, 'user_id': user_id, 'peer_id': user_id, 'rev': 0, 'group_id': 219295292})
     if onlyText:
-        return last_messages['items']
+        return last_messages['items'][0]['text']
     else:
-        return last_messages['items']
+        return last_messages['items'][0]
 
 
 def main():
@@ -274,8 +265,6 @@ def main():
                                 print(f'SENDING OFFER: "{item}"')
                                 # sendTradeOffer(item, message)  # Отправка предмета пользователю
                                 updateOrder(user, price, status=4, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
-                                # delWithdrawnItem()  # Удаление предмета из Storage
-                                # addSoldItem()  # Добавление предмета в Sold Items
                                 send_message(user, f'Предмет [club219295292|{item}] успешно вам отправлен! Примите его в течение 2 часов.')
                             except:
                                 send_message(user, 'Не удалось отправить обмен. Напишите нам в ЛС')
@@ -285,6 +274,11 @@ def main():
                             sendDate = itemStatus(item.replace("*", ""))[1]  # Дата отправки предмета
                             updateOrder(user, price, status=3, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                             send_message(user, f'Предмет [club219295292|{item.replace("*", "")}] успешно забронирован!\nОн будет отправлен вам @club219295292 ({sendDate}) в 10:00 по МСК.')
+
+                        addSoldItem(item, getStorageItemData(item, onlyPrice=True), price, 'Andrey')  # Добавление предмета в Sold Items
+                        delWithdrawnItem(item)  # Удаление предмета из Storage
+
+                        editSoldPost(item)  # Добавление отметки 'ПРОДАНО' в пост с предметом
 
                         # Добавление в таблицу REAL USERS
                         if isInRealUsers(user):
@@ -356,14 +350,14 @@ def respondOnItemStatus(user, item, wallPrice, price='', coupon=False):
     match itemActualStatus:  # Статус предмета
 
         case True:  # Доступен
-            item_price = itemWallPrice(item) if wallPrice else price  # Поиск цены предмета
+            item_price = itemWallInfo(item, onlyPrice=True) if wallPrice else price  # Поиск цены предмета
             if item_price is None:  # Если на стене такого предмета нет
                 send_message(user, 'К сожалению, данный предмет не найден. Попробуйте указать ссылку на пост с предметом или повторите попытку позже.')
             else:
                 acceptItem(user, item, item_price, coupon=coupon)
 
         case True, str():  # Недоступен для обмена
-            item_price = itemWallPrice(item) if wallPrice else price  # Поиск цены предмета
+            item_price = itemWallInfo(item, onlyPrice=True) if wallPrice else price  # Поиск цены предмета
             send_message(user, f'Обратите внимание, что предмет будет доступен для обмена @club219295292 ({itemActualStatus[1]} в 10:00 МСК).\nЕсли вы оплатите его сейчас, мы забронируем предмет и отправим его вам в указанную дату.')
             acceptItem(user, item, item_price, sendDate=itemActualStatus[1], coupon=coupon)  # Подтверждение покупки предмета
 
