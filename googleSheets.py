@@ -5,8 +5,6 @@ import configure
 import gspread
 from datetime import datetime
 
-from checkPayment import checkQIWI
-
 
 CREDENTIALS_FILE = 'storageSheet_keys.json'  # Имя файла с закрытым ключом, вы должны подставить свое
 
@@ -253,3 +251,71 @@ def isActiveOrder(user):
             return [True, price, payment]
 
     return [False]
+
+
+# -------------------- REAL USERS --------------------
+
+# Добавление пользователя в REAL USERS
+def addRealUser(user, price):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("realUsers")
+
+    sheet.append_row([user, price, 1, datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M')])
+
+# Проверка на наличие пользователя в REAL USERS
+def isInRealUsers(user):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("realUsers")
+
+    data = sheet.get_all_values()[1:]
+
+    for i in data:
+        if i[0] == str(user):
+            return True
+
+    return False
+
+# Добавление выполненного заказа в REAL USERS
+def updateRealUser(user, price):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("realUsers")
+
+    data = sheet.get_all_values()
+
+    for row in range (1, len(data)):
+        if data[row][0] == str(user):
+            sheet.update_acell(f'B{row + 1}', int(data[row][1]) + price)  # Сумма заказов
+            sheet.update_acell(f'C{row + 1}', int(data[row][2]) + 1)  # Количество заказов
+            sheet.update_acell(f'D{row + 1}', datetime.strftime(datetime.now(), '%d-%m-%Y %H:%M'))  # Дата последнего заказа
+
+# Получение количества заказов пользователя
+def getRealUserData(user, onlyAmount=False, onlyLastOrder=False):
+
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("storageSheet").worksheet("realUsers")
+
+    data = sheet.get_all_values()[1:]
+
+    if onlyAmount:
+        for row in data:
+            if row[0] == str(user):
+                return row[2]
+    elif onlyLastOrder:
+        for row in data:
+            if row[0] == str(user):
+                return datetime.strptime(row[3], '%d-%m-%Y %H:%M')

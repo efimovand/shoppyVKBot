@@ -14,6 +14,8 @@ def itemWallPrice(item):
             post_text = post_text[post_text.find('Цена продажи: ') + 14:]
             return post_text[:post_text.find(' ₽')]  # Цена предмета
 
+    return None
+
 
 # Получение информации о предмете из поста ВК
 def parsePost(url):

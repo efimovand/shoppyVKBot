@@ -4,7 +4,7 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardButton, VkKeyboardColor
 import configure
 from itemStatus import itemStatus
 from wallFunctions import itemWallPrice, parsePost
-from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder, delWithdrawnItem, addSoldItem
+from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder, delWithdrawnItem, addSoldItem, isInRealUsers, addRealUser, updateRealUser, getRealUserData
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
 from supportFunctions import actualUSD
@@ -48,8 +48,6 @@ def main():
             # Если отправили ССЫЛКУ на пост
             if "wall-219295292" in message:
 
-                send_message(user, 'Секунду, проверяю пост... 🔎')
-
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
                 if activeOrderInfo[0]:
@@ -57,12 +55,19 @@ def main():
 
                 else:  # Если активного заказа нет
 
+                    send_message(user, 'Секунду, проверяю пост... 🔎')
+
                     validationResult = parsePost(message)  # Проверка корректности ссылки и получение данных о предмете
 
                     if parsePost(message):
                         item = validationResult[0]
                         price = validationResult[1]
-                        respondOnItemStatus(user, item, wallPrice=False, price=price)  # Формирование подтверждения заказа
+
+                        # Формирование подтверждения заказа
+                        if isInRealUsers(user) and int(getRealUserData(user, onlyAmount=True)) % 5 == 0 and (datetime.now() - getRealUserData(user, onlyLastOrder=True)).days <= 14:  # С купоном
+                            respondOnItemStatus(user, item, wallPrice=False, price=price, coupon=True)
+                        else:  # Без купона
+                            respondOnItemStatus(user, item, wallPrice=False, price=price)
 
                     else:  # Ссылка на неверный пост / ошибка проверки
                         send_message(user, 'Ссылка указана неверно. Вместо нее вы можете отправить название желаемого предмета, или попробовать позже.')
@@ -81,10 +86,17 @@ def main():
                     if " | " in message and " (" in message and ")" in message:
 
                         send_message(user, 'Секунду, ищу предмет... 🔎')
-                        respondOnItemStatus(user, message, wallPrice=True)  # Формирование подтверждения заказа
+
+                        print((datetime.now() - datetime.strptime(getRealUserData(user, onlyLastOrder=True), '%d-%m-%Y %H:%M')).days)
+
+                        # Формирование подтверждения заказа
+                        if isInRealUsers(user) and int(getRealUserData(user, onlyAmount=True)) % 5 == 0 and (datetime.now() - getRealUserData(user, onlyLastOrder=True)).days <= 14:  # С купоном
+                                respondOnItemStatus(user, message, wallPrice=True, coupon=True)
+                        else:  # Без купона
+                            respondOnItemStatus(user, message, wallPrice=True)
 
                     else:
-                        send_message(user, 'Введите полное название предмета на английском языке.\nЕго можно скопировать из поста с предметом на стене группы.\nНапример, "𝙰𝚆𝙿 | 𝙰𝚜𝚒𝚒𝚖𝚘𝚟 (𝙵𝚒𝚎𝚕𝚍-𝚃𝚎𝚜𝚝𝚎𝚍)"')
+                        send_message(user, 'Введите полное название предмета на английском языке.\nЕго можно скопировать из поста с предметом на стене группы.\nНапример, "𝙰𝚆𝙿 | 𝙰𝚜𝚒𝚒𝚖𝚘𝚟 (𝙵𝚒𝚎𝚕𝚍-𝚃𝚎𝚜𝚝𝚎𝚍)".')
 
 
             # Подтверждение заказа
@@ -113,6 +125,43 @@ def main():
                     send_message(user, 'Проверьте ссылку на пост и попробуйте отправить ее заново. Если ошибка сохраняется, напишите @id222224804 (Администратору) - он сам проведет оплату и отправит вам предмет.')
 
 
+            # Применение скидочного купона
+            elif 'купон' in message.lower():
+
+                if isInRealUsers(user):  # Если пользователь уже совершал покупки
+
+                    userOrdersAmount = int(getRealUserData(user, onlyAmount=True))  # Количество покупок
+
+                    if userOrdersAmount % 5 == 0:  # Если купон есть
+
+                        userLastOrder = getRealUserData(user, onlyLastOrder=True)  # Дата последней покупки
+
+                        if (datetime.now() - userLastOrder).days <= 14:  # Если купон не истек
+
+                            last_message = get_last_message(user)  # Получение информации о последнем сообщении
+
+                            if last_message['from_id'] == -219295292 and 'Подтвердите покупку' in last_message['text']:  # Если последнее сообщение было корректным
+
+                                # Получение информации о предмете
+                                last_message_text = last_message['text']
+                                item = last_message_text[last_message_text.find('|') + 1:last_message_text.find(']')]  # Название
+                                price = str(round(int(last_message_text[last_message_text.find('Цена: ') + 21:last_message_text.find(' ₽')]) * 0.95))  # Цена со скидкой 5%
+
+                                respondOnItemStatus(user, item, wallPrice=False, price=price)  # Формирование подтверждения заказа
+
+                            else:  # Купон есть, но отправлен не вовремя
+                                send_message(user, 'Применение купона происходит после формирования заказа.\nПожалуйста, укажите ссылку на пост @club219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.\nА затем на этапе подтверждения заказа отправьте слово "@club219295292 (КУПОН)".')
+
+                        else:
+                            send_message(user, f'Ваш купон истек. Срок действия купона — 14 дней с момента каждой пятой покупки.\nВаша последняя подходящая покупка была совершена {userLastOrder}')
+
+                    else:  # Покупок недостаточно для купона
+                        send_message(user, f'Купон выдается после каждой пятой покупки в @club219295292 (SHOPPY | Продажа скинов CS:GO).\nЧисло ваших покупок — @club219295292 ({userOrdersAmount}). Совершите еще {5 - (userOrdersAmount % 5)}, чтобы получить скидку 5% на любой предмет.')
+
+                else:  # Пользователь еще не совершал покупок
+                    send_message(user, 'Для получения купона необходимо сделать 5 покупок в @club219295292 (SHOPPY | Продажа скинов CS:GO).\nПодробнее: https://vk.com/topic-219295292_50173359')
+
+
             # Способ оплаты
             elif message == 'Тинькофф' or message == 'СБЕР' or message == 'QIWI' or message == 'USDT':
 
@@ -132,7 +181,7 @@ def main():
                         case 'QIWI':
                             send_message(user, f'Оплатите @club219295292 ({price} ₽) по указанным реквизитам в течение 15 минут:\n@club219295292 ({configure.qiwi_pay})', keyboard=markup)
                         case 'USDT':
-                            price_USDT = round(price / actualUSD(), 2)  # Сумма заказа в USDT
+                            price_USDT = round(int(price) / actualUSD(), 2)  # Сумма заказа в USDT
                             send_message(user, f'Оплатите @club219295292 ({price_USDT}) USDT по указанным реквизитам в течение 15 минут:\n@club219295292 ({configure.usdt_pay})', keyboard=markup)
 
                 else:
@@ -155,31 +204,31 @@ def main():
 
                     if (datetime.now() - invoiceDate).seconds < 900:  # Если с момента выставления счета прошло < 15 минут
 
-                        # Проверка оплаты
-                        match payment:
-                            case 'Тинькофф':
-                                if checkTinkoff(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
-                            case 'СБЕР':
-                                if checkSber(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
-                            case 'QIWI':
-                                if checkQIWI(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
-                            case 'USDT':
-                                price = round(price / actualUSD(), 2)  # Сумма заказа в USDT
-                                if checkUSDT(user, price, invoiceDate) == (user, True):
-                                    transactionSuccess(user, price)
-                                else:
-                                    transactionNone(user, price, payment)
+                        # # Проверка оплаты
+                        # match payment:
+                        #     case 'Тинькофф':
+                        #         if checkTinkoff(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
+                        #     case 'СБЕР':
+                        #         if checkSber(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
+                        #     case 'QIWI':
+                        #         if checkQIWI(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
+                        #     case 'USDT':
+                        #         price = round(int(price) / actualUSD(), 2)  # Сумма заказа в USDT
+                        #         if checkUSDT(user, price, invoiceDate) == (user, True):
+                        #             transactionSuccess(user, price)
+                        #         else:
+                        #             transactionNone(user, price, payment)
 
-                        # transactionSuccess(user, price)
+                        transactionSuccess(user, price)
 
                     else:
                         updateOrder(user, price, status=0)
@@ -226,6 +275,12 @@ def main():
                             updateOrder(user, price, status=3, tradeLink=message)  # Обновление статуса заказа на 'ВЫПОЛНЕН'
                             send_message(user, f'Предмет [club219295292|{item.replace("*", "")}] успешно забронирован!\nОн будет отправлен вам @club219295292 ({sendDate}) в 10:00 по МСК.')
 
+                        # Добавление в таблицу REAL USERS
+                        if isInRealUsers(user):
+                            updateRealUser(user, price)
+                        else:
+                            addRealUser(user, price)
+
                     case _:
                         send_message(user, 'У вас нет текущих заказов. Если произошла ошибка, напишите нам в ЛС')
 
@@ -235,11 +290,15 @@ def main():
 
 
 # Подтверждение заказа
-def acceptItem(user, item, price, sendDate=''):
+def acceptItem(user, item, price, sendDate='', coupon=False):
 
     markup = VkKeyboard(one_time=True)
     markup.add_button('Да', VkKeyboardColor.POSITIVE)
     markup.add_button('Нет', VkKeyboardColor.NEGATIVE)
+
+    if coupon:  # Применение купона
+        markup.add_line()
+        markup.add_button('Применить купон', VkKeyboardColor.SECONDARY)
 
     if not sendDate:  # Если предмет доступен для обмена
         send_message(user, f'Подтвердите покупку:\n[club219295292|{item}]\nЦена: @club219295292 ({price} ₽)', keyboard=markup)
@@ -279,7 +338,7 @@ def unablePaymentWay(user):
 
 
 # Формирование подтверждения заказа исходя из статуса предмета
-def respondOnItemStatus(user, item, wallPrice, price=''):
+def respondOnItemStatus(user, item, wallPrice, price='', coupon=False):
 
     itemActualStatus = itemStatus(item)  # Поиск предмета по таблицам
 
@@ -290,12 +349,12 @@ def respondOnItemStatus(user, item, wallPrice, price=''):
             if item_price is None:  # Если на стене такого предмета нет
                 send_message(user, 'К сожалению, данный предмет не найден. Попробуйте указать ссылку на пост с предметом или повторите попытку позже.')
             else:
-                acceptItem(user, item, item_price)
+                acceptItem(user, item, item_price, coupon=coupon)
 
         case True, str():  # Недоступен для обмена
             item_price = itemWallPrice(item) if wallPrice else price  # Поиск цены предмета
             send_message(user, f'Обратите внимание, что предмет будет доступен для обмена @club219295292 ({itemActualStatus[1]} в 10:00 МСК).\nЕсли вы оплатите его сейчас, мы забронируем предмет и отправим его вам в указанную дату.')
-            acceptItem(user, item, item_price, sendDate=itemActualStatus[1])  # Подтверждение покупки предмета
+            acceptItem(user, item, item_price, sendDate=itemActualStatus[1], coupon=ocoupon)  # Подтверждение покупки предмета
 
         case False:  # Продан
             send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, совсем скоро новое поступление! 🚚')
