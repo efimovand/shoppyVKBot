@@ -24,13 +24,22 @@ def send_message(user_id, message, keyboard=None):
         vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0, 'dont_parse_links': 1, 'keyboard': keyboard.get_keyboard()})
 
 
+# # Функция получения предыдущего сообщения в диалоге
+# def get_last_message(user_id, onlyText=False):
+#     last_messages = vk_session.method('messages.getHistory', {'offset': 1, 'count': 1, 'user_id': user_id, 'peer_id': user_id, 'rev': 0, 'group_id': 219295292})
+#     if onlyText:
+#         return last_messages['items'][0]['text']
+#     else:
+#         return last_messages['items'][0]
+
+
 # Функция получения предыдущего сообщения в диалоге
 def get_last_message(user_id, onlyText=False):
-    last_messages = vk_session.method('messages.getHistory', {'offset': 1, 'count': 1, 'user_id': user_id, 'peer_id': user_id, 'rev': 0, 'group_id': 219295292})
+    last_messages = vk_session.method('messages.getHistory', {'offset': 0, 'count': 10, 'user_id': user_id, 'peer_id': user_id, 'rev': 0, 'group_id': 219295292})
     if onlyText:
-        return last_messages['items'][0]['text']
+        return last_messages['items']
     else:
-        return last_messages['items'][0]
+        return last_messages['items']
 
 
 def main():
@@ -45,8 +54,8 @@ def main():
             user = event.user_id  # ID пользователя
 
 
-            # Если отправили ССЫЛКУ на пост
-            if "wall-219295292" in message:
+            # Если отправили ССЫЛКУ на пост / переслали пост
+            if "wall-219295292" in message or (event.attachments and event.attachments['attach1_type'] == 'wall' and '-219295292_' in event.attachments['attach1']):
 
                 # Проверка наличия активного заказа у пользователя
                 activeOrderInfo = isActiveOrder(user)
@@ -56,6 +65,9 @@ def main():
                 else:  # Если активного заказа нет
 
                     send_message(user, 'Секунду, проверяю пост... 🔎')
+
+                    if event.attachments:  # Если пост был переслан
+                        message = 'https://vk.com/wall-' + event.attachments['attach1']
 
                     validationResult = parsePost(message)  # Проверка корректности ссылки и получение данных о предмете
 
@@ -239,14 +251,13 @@ def main():
 
 
             # Ссылка на обмен [TEXT / URL]
-            elif 'steamcommunity.com/tradeoffer' in message or event.attachments:
+            elif 'steamcommunity.com/tradeoffer' in message or (event.attachments and event.attachments['attach1_type'] == 'link' and 'steamcommunity.com/tradeoffer' in event.attachments['attach1_url']):
 
                 # Если ссылка была отправлена как URL
                 if event.attachments:
-                    if event.attachments['attach1_type'] == 'link' and 'steamcommunity.com/tradeoffer' in event.attachments['attach1_url']:
-                        message = event.attachments['attach1_url']
-                    else:
-                        send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост @club219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
+                    message = event.attachments['attach1_url']
+                else:
+                    send_message(user, 'Данный бот может получить ссылку на пост со стены сообщества или название желаемого предмета, а затем принять оплату и передать вам предмет.\n\nПожалуйста, укажите ссылку на пост @club219295292 (SHOPPY | Продажа скинов CS:GO), либо название предмета из поста.')
 
                 match getOrderData(user, onlyStatus=True):  # Проверка статуса заказа
 
@@ -277,7 +288,7 @@ def main():
 
                         # Добавление в таблицу REAL USERS
                         if isInRealUsers(user):
-                            updateRealUser(user, price)
+                            updateRealUser(user, int(price))
                         else:
                             addRealUser(user, price)
 
@@ -354,7 +365,7 @@ def respondOnItemStatus(user, item, wallPrice, price='', coupon=False):
         case True, str():  # Недоступен для обмена
             item_price = itemWallPrice(item) if wallPrice else price  # Поиск цены предмета
             send_message(user, f'Обратите внимание, что предмет будет доступен для обмена @club219295292 ({itemActualStatus[1]} в 10:00 МСК).\nЕсли вы оплатите его сейчас, мы забронируем предмет и отправим его вам в указанную дату.')
-            acceptItem(user, item, item_price, sendDate=itemActualStatus[1], coupon=ocoupon)  # Подтверждение покупки предмета
+            acceptItem(user, item, item_price, sendDate=itemActualStatus[1], coupon=coupon)  # Подтверждение покупки предмета
 
         case False:  # Продан
             send_message(user, 'К сожалению, данный предмет был недавно продан.\nНо не стоит расстраиваться, совсем скоро новое поступление! 🚚')
