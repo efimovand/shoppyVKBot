@@ -28,23 +28,19 @@ def checkBookedItems():
 # Отправка забронированных предметов, доступных для обмена
 def sendBookedItems():
 
-    print('----- Sending actual BOOKED items -----')
+    print('\n---------- Searching actual BOOKED items ----------')
 
     bookedItems = checkBookedItems()
 
-    if bookedItems:
-
-        print('    Some actual BOOKED items were found')
-
+    if bookedItems:  # Если найдены подходящие предметы
         for item in bookedItems:
+            print(f"Sending {item['name']} to the USER {item['user']}")
             # sendTradeOffer(item['name'], item['tradeLink'])  # Отправка предмета покупателю
             send_message(item['user'], f"Добрый день! ☀️\nПредмет [club219295292|{item['name']}] успешно вам отправлен! Примите его в течение 2 часов.")  # Сообщение об отправленном предмете
             updateOrder(item['user'], item['price'], status=4)
 
     else:
-        print('----- There are no any actual BOOKED items -----')
+        print('---------- There are no any actual BOOKED items ----------\n')
         return
 
-    print('----- The BOOKED items were sent to their customers -----')
-
-sendBookedItems()
+    print('---------- The BOOKED items were sent to their customers ----------\n')

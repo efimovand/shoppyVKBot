@@ -2,7 +2,8 @@ import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardButton, VkKeyboardColor
 import configure
-from itemInfo import itemStatus, itemWallPrice, parsePost
+from itemStatus import itemStatus
+from wallFunctions import itemWallPrice, parsePost
 from googleSheets import addOrder, getOrderData, updateOrder, deleteOrder, isActiveOrder, delWithdrawnItem, addSoldItem
 from checkPayment import checkTinkoff, checkSber, checkQIWI, checkUSDT
 # from steam_offers import sendTradeOffer
@@ -45,7 +46,7 @@ def main():
 
 
             # Если отправили ССЫЛКУ на пост
-            if "vk.com/shoppycsgo?w=wall" in message or "vk.com/wall-" in message:
+            if "wall-219295292" in message:
 
                 send_message(user, 'Секунду, проверяю пост... 🔎')
 
@@ -58,14 +59,13 @@ def main():
 
                     validationResult = parsePost(message)  # Проверка корректности ссылки и получение данных о предмете
 
-                    if type(validationResult) == dict:
-
-                        item = validationResult['name']
-                        price = validationResult['price']
+                    if parsePost(message):
+                        item = validationResult[0]
+                        price = validationResult[1]
                         respondOnItemStatus(user, item, wallPrice=False, price=price)  # Формирование подтверждения заказа
 
                     else:  # Ссылка на неверный пост / ошибка проверки
-                        send_message(user, validationResult)
+                        send_message(user, 'Ссылка указана неверно. Вместо нее вы можете отправить название желаемого предмета, или попробовать позже.')
 
 
             # Если отправили НАЗВАНИЕ предмета
