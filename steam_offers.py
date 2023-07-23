@@ -26,7 +26,7 @@ def sendTradeOffer(give_item, trade_link):
     game = GameOptions.CS
     my_inventory = steam_client.get_my_inventory(game)  # Получение своего инвентаря CS:GO
     my_item = find_item_id(give_item, my_inventory)  # Поиск ID нужного предмета в инвентаре
-    my_item = [Asset(my_item['id'], game)]
+    my_asset = [Asset(my_item['id'], game)]
 
     try:
         steam_client.make_offer_with_url(my_asset, [], trade_link)
@@ -34,6 +34,6 @@ def sendTradeOffer(give_item, trade_link):
         print(e)
 
 
-item_to_send = 'Five-SeveN | Forest Night (Field-Tested)'  # Название предмета для отправки
-buyer_trade_link = 'https://steamcommunity.com/tradeoffer/new/?partner=923326400&token=sks89PCo'  # Трейд ссылка покупателя
-sendTradeOffer(item_to_send, buyer_trade_link)  # Отправка обмена
+# item_to_send = 'Five-SeveN | Forest Night (Field-Tested)'  # Название предмета для отправки
+# buyer_trade_link = 'https://steamcommunity.com/tradeoffer/new/?partner=923326400&token=sks89PCo'  # Трейд ссылка покупателя
+# sendTradeOffer(item_to_send, buyer_trade_link)  # Отправка обмена
