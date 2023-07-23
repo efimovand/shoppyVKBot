@@ -90,8 +90,6 @@ def main():
 
                         send_message(user, 'Секунду, ищу предмет... 🔎')
 
-                        print((datetime.now() - datetime.strptime(getRealUserData(user, onlyLastOrder=True), '%d-%m-%Y %H:%M')).days)
-
                         # Формирование подтверждения заказа
                         if isInRealUsers(user) and int(getRealUserData(user, onlyAmount=True)) % 5 == 0 and (datetime.now() - getRealUserData(user, onlyLastOrder=True)).days <= 14:  # С купоном
                                 respondOnItemStatus(user, message, wallPrice=True, coupon=True)
@@ -207,31 +205,29 @@ def main():
 
                     if (datetime.now() - invoiceDate).seconds < 900:  # Если с момента выставления счета прошло < 15 минут
 
-                        # # Проверка оплаты
-                        # match payment:
-                        #     case 'Тинькофф':
-                        #         if checkTinkoff(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
-                        #     case 'СБЕР':
-                        #         if checkSber(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
-                        #     case 'QIWI':
-                        #         if checkQIWI(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
-                        #     case 'USDT':
-                        #         price = round(int(price) / actualUSD(), 2)  # Сумма заказа в USDT
-                        #         if checkUSDT(user, price, invoiceDate) == (user, True):
-                        #             transactionSuccess(user, price)
-                        #         else:
-                        #             transactionNone(user, price, payment)
-
-                        transactionSuccess(user, price)
+                        # Проверка оплаты
+                        match payment:
+                            case 'Тинькофф':
+                                if checkTinkoff(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
+                            case 'СБЕР':
+                                if checkSber(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
+                            case 'QIWI':
+                                if checkQIWI(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
+                            case 'USDT':
+                                price = round(int(price) / actualUSD(), 2)  # Сумма заказа в USDT
+                                if checkUSDT(user, price, invoiceDate) == (user, True):
+                                    transactionSuccess(user, price)
+                                else:
+                                    transactionNone(user, price, payment)
 
                     else:
                         updateOrder(user, price, status=0)
@@ -285,6 +281,7 @@ def main():
                             updateRealUser(user, int(price))
                         else:
                             addRealUser(user, price)
+                            send_message(user, 'Спасибо за покупку!\nОставьте отзыв со скриншотом в соответствующем разделе, если вам не сложно 🥺\nА мы подарим вам купон на скидку 5% уже после вашей третьей покупки в @club219295292 (SHOPPY | Продажа скинов CS:GO) 🎟️')
 
                     case _:
                         send_message(user, 'У вас нет текущих заказов. Если произошла ошибка, напишите нам в ЛС')
