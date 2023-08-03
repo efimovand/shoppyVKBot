@@ -3,11 +3,6 @@ from steampy.utils import GameOptions, get_key_value_from_url, account_id_to_ste
 import configure
 
 
-# Авторизация в Steam
-steam_client = SteamClient(configure.steam_apiKey)
-steam_client.login(configure.steam_username, configure.steam_password, "steam_guard_Egor.json")
-
-
 # Поиск ID предмета в инвентаре по его названию
 def find_item_id(item_hash_name, items):
     for item in items.values():
@@ -21,19 +16,19 @@ def find_item_id(item_hash_name, items):
 
 
 # Отправка трейда
-def sendTradeOffer(give_item, trade_link):
+def sendTradeOffer(give_item, trade_link, sender):
 
-    game = GameOptions.CS
-    my_inventory = steam_client.get_my_inventory(game)  # Получение своего инвентаря CS:GO
+    # Авторизация в Steam
+    steam_client = SteamClient(configure.steam_apiKey)
+    steam_client.login(configure.steam_username, configure.steam_password, f"steam_guard_{sender}.json")  # Активный аккаунт
+
+    # Поиск нужного предмета
+    my_inventory = steam_client.get_my_inventory(GameOptions.CS)  # Получение своего инвентаря CS:GO
     my_item = find_item_id(give_item, my_inventory)  # Поиск ID нужного предмета в инвентаре
-    my_asset = [Asset(my_item['id'], game)]
+    my_asset = [Asset(my_item['id'], GameOptions.CS)]
 
+    # Отправка обмена
     try:
         steam_client.make_offer_with_url(my_asset, [], trade_link)
     except Exception as e:
         print(e)
-
-
-# item_to_send = 'Five-SeveN | Forest Night (Field-Tested)'  # Название предмета для отправки
-# buyer_trade_link = 'https://steamcommunity.com/tradeoffer/new/?partner=923326400&token=sks89PCo'  # Трейд ссылка покупателя
-# sendTradeOffer(item_to_send, buyer_trade_link)  # Отправка обмена

@@ -267,10 +267,12 @@ def main():
 
                                     print(f'SENDING OFFER: "{item}"...')
 
+                                    sender = getStorageItemData(item, onlyAccount=True)  # Определение аккаунта с предметом
+
                                     # Отправка предмета пользователю
                                     for attempt in range (1, 6):
                                         try:
-                                            sendTradeOffer(item, message)
+                                            sendTradeOffer(item, message, sender)
                                             break
                                         except:
                                             send_message(user, f'При отправке предмета произошла ошибка.\nПопытка #{attempt}...')

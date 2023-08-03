@@ -29,7 +29,7 @@ def getStorageData():
     return sheet.get_all_values()
 
 # Получение информации из Storage о конкретном предмете
-def getStorageItemData(item, onlyPrice=False):
+def getStorageItemData(item, onlyPrice=False, onlyAccount=False):
 
     scope = ['https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
@@ -43,6 +43,11 @@ def getStorageItemData(item, onlyPrice=False):
         for row in data:
             if row[0] == item:
                 return row[3]
+
+    if onlyAccount:
+        for row in data:
+            if row[0] == item:
+                return row[8]
 
     return None
 
