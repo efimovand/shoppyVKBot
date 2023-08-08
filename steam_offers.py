@@ -18,9 +18,22 @@ def find_item_id(item_hash_name, items):
 # Отправка трейда
 def sendTradeOffer(give_item, trade_link, sender):
 
+    # Текущий аккаунт Steam
+    match sender:
+        case 'Andrey':
+            steam_apiKey = configure.steam_apiKey_Andrey
+            steam_username = configure.steam_username_Andrey
+            steam_password = configure.steam_password_Andrey
+        case 'Egor':
+            steam_apiKey = configure.steam_apiKey_Egor
+            steam_username = configure.steam_username_Egor
+            steam_password = configure.steam_password_Egor
+        case _:
+            raise '*** ERROR! Invalid Account ***'
+
     # Авторизация в Steam
-    steam_client = SteamClient(configure.steam_apiKey)
-    steam_client.login(configure.steam_username, configure.steam_password, f"steam_guard_{sender}.json")  # Активный аккаунт
+    steam_client = SteamClient(steam_apiKey)
+    steam_client.login(steam_username, steam_password, f"steam_guard_{sender}.json")  # Активный аккаунт
 
     # Поиск нужного предмета
     my_inventory = steam_client.get_my_inventory(GameOptions.CS)  # Получение своего инвентаря CS:GO
