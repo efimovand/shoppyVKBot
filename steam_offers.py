@@ -1,6 +1,6 @@
 from steampy.client import SteamClient, Asset
 from steampy.utils import GameOptions, get_key_value_from_url, account_id_to_steam_id
-import configure
+from configure import steam_data
 
 
 # Поиск ID предмета в инвентаре по его названию
@@ -19,21 +19,14 @@ def find_item_id(item_hash_name, items):
 def sendTradeOffer(give_item, trade_link, sender):
 
     # Текущий аккаунт Steam
-    match sender:
-        case 'Andrey':
-            steam_apiKey = configure.steam_apiKey_Andrey
-            steam_username = configure.steam_username_Andrey
-            steam_password = configure.steam_password_Andrey
-        case 'Egor':
-            steam_apiKey = configure.steam_apiKey_Egor
-            steam_username = configure.steam_username_Egor
-            steam_password = configure.steam_password_Egor
-        case _:
-            raise '*** ERROR! Invalid Account ***'
+    try:
+        sender_data = steam_data[f'{sender}']
+    except:
+        raise '*** ERROR! Invalid Sender Account ***'
 
     # Авторизация в Steam
-    steam_client = SteamClient(steam_apiKey)
-    steam_client.login(steam_username, steam_password, f"steam_guard_{sender}.json")  # Активный аккаунт
+    steam_client = SteamClient(sender_data[2])
+    steam_client.login(sender_data[0], sender_data[1], f"steam_guard_{sender}.json")  # Активный аккаунт
 
     # Поиск нужного предмета
     my_inventory = steam_client.get_my_inventory(GameOptions.CS)  # Получение своего инвентаря CS:GO
@@ -45,3 +38,5 @@ def sendTradeOffer(give_item, trade_link, sender):
         steam_client.make_offer_with_url(my_asset, [], trade_link)
     except Exception as e:
         print(e)
+
+sendTradeOffer('', '', 'Andrey')
